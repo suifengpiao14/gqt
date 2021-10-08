@@ -129,7 +129,7 @@ func NewRepository() *Repository {
 // Add adds a root directory to the repository, recursively. Match only the
 // given file extension. Blocks on the same namespace will be overridden. Does
 // not follow symbolic links.
-func (r *Repository) Add(root string, pattern string) (err error) {
+func (r *Repository) Add(root string, pattern string, funcMap template.FuncMap) (err error) {
 	// List the directories
 	dirs := []string{}
 	err = filepath.Walk(
@@ -154,7 +154,7 @@ func (r *Repository) Add(root string, pattern string) (err error) {
 		d := strings.Split(dir, string(os.PathSeparator))
 		ro := strings.Split(root, string(os.PathSeparator))
 		namespace := strings.Join(d[len(ro):], "/")
-		err = r.addDir(dir, namespace, pattern)
+		err = r.addDir(dir, namespace, pattern, funcMap)
 		if err != nil {
 			return err
 		}
@@ -163,11 +163,10 @@ func (r *Repository) Add(root string, pattern string) (err error) {
 }
 
 // addDir parses a directory.
-func (r *Repository) addDir(path, namespace, pattern string) error {
+func (r *Repository) addDir(path, namespace, pattern string, funcMap template.FuncMap) error {
 	// Parse the template
-	t, err := template.ParseGlob(filepath.Join(path, pattern))
+	t, err := template.New("").Funcs(funcMap).ParseGlob(filepath.Join(path, pattern))
 	if err != nil {
-		r.templates[namespace] = template.New("")
 		return err
 	}
 	r.templates[namespace] = t
@@ -175,18 +174,14 @@ func (r *Repository) addDir(path, namespace, pattern string) error {
 }
 
 // Get is a shortcut for r.Exec(), passing nil as data.
-func (r *Repository) Get(name string) string {
+func (r *Repository) Get(name string) (s string, err error) {
 	return r.Exec(name, nil)
 }
 
 // Exec is a shortcut for r.Parse(), but panics if an error occur.
-func (r *Repository) Exec(name string, data interface{}) (s string) {
-	var err error
+func (r *Repository) Exec(name string, data interface{}) (s string, err error) {
 	s, err = r.Parse(name, data)
-	if err != nil {
-		panic(err)
-	}
-	return s
+	return
 }
 
 // Parse executes the template and returns the resulting SQL or an error.
@@ -215,20 +210,40 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 	return b.String(), nil
 }
 
+// AddTemplateFuncs add custom functions to template
+func (r *Repository) AddTemplateFuncs(name string, funcMap template.FuncMap) (err error) {
+	// Prepare namespace and block name
+	if name == "" {
+		return fmt.Errorf("unnamed block")
+	}
+	path := strings.Split(name, "/")
+	namespace := strings.Join(path[0:len(path)-1], "/")
+	if namespace == "." {
+		namespace = ""
+	}
+	// Execute the template
+	t, ok := r.templates[namespace]
+	if ok == false {
+		return fmt.Errorf("unknown namespace \"%s\"", namespace)
+	}
+	r.templates[namespace] = t.Funcs(funcMap) // recover template
+	return nil
+}
+
 var defaultRepository = NewRepository()
 
 // Add method for the default repository.
-func Add(root string, ext string) error {
-	return defaultRepository.Add(root, ext)
+func Add(root string, ext string, funcMap template.FuncMap) error {
+	return defaultRepository.Add(root, ext, funcMap)
 }
 
 // Get method for the default repository.
-func Get(name string) string {
+func Get(name string) (s string, err error) {
 	return defaultRepository.Get(name)
 }
 
 // Exec method for the default repository.
-func Exec(name string, data interface{}) string {
+func Exec(name string, data interface{}) (s string, e error) {
 	return defaultRepository.Exec(name, data)
 }
 
