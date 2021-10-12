@@ -148,6 +148,14 @@ func (r *Repository) Add(root string, pattern string, funcMap template.FuncMap) 
 		return err
 	}
 
+	// add default template function
+	for k, v := range TemplatefuncMap {
+		_, ok := funcMap[k]
+		if !ok {
+			funcMap[k] = v
+		}
+	}
+
 	// Add each sub-directory as namespace
 	for _, dir := range dirs {
 		//namespace := strings.Replace(dir, root, "", 1)
