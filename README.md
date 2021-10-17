@@ -15,7 +15,8 @@ Read more about [ORM is the Vietnam of computer science](http://blog.codinghorro
 Install/update using go get (no dependencies required by gqt):
 
 ```bash
-go get -u github.com/Davmuz/gqt
+go get -u github.com/suifengpiao14/gqt
+ 
 ```
 
 #### Benefits
