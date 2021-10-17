@@ -112,7 +112,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/gobuffalo/packr"
+	"github.com/gobuffalo/packr/v2"
 )
 
 // Repository stores SQL templates.
@@ -163,7 +163,7 @@ func (r *Repository) GetNamespace(filename string) (namespace string) {
 // Add adds a root directory to the repository, recursively. Match only the
 // given file extension. Blocks on the same namespace will be overridden. Does
 // not follow symbolic links.
-func (r *Repository) AddFromPackrBox(box packr.Box, funcMap template.FuncMap) (err error) {
+func (r *Repository) AddFromPackrBox(box *packr.Box, funcMap template.FuncMap) (err error) {
 	// List the directories
 	allFileList := box.List()
 
@@ -243,7 +243,7 @@ func Add(root string, funcMap template.FuncMap) error {
 }
 
 // Add method for the default repository.
-func AddFromPackrBox(box packr.Box, funcMap template.FuncMap) error {
+func AddFromPackrBox(box *packr.Box, funcMap template.FuncMap) error {
 	return defaultRepository.AddFromPackrBox(box, funcMap)
 }
 
