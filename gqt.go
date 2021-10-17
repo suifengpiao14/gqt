@@ -108,10 +108,11 @@ package gqt
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/gobuffalo/packr"
 )
 
 // Repository stores SQL templates.
@@ -126,40 +127,64 @@ func NewRepository() *Repository {
 	}
 }
 
+var suffix = ".sql.tpl"
+
 // Add adds a root directory to the repository, recursively. Match only the
 // given file extension. Blocks on the same namespace will be overridden. Does
 // not follow symbolic links.
-func (r *Repository) Add(root string, pattern string, funcMap template.FuncMap) (err error) {
+func (r *Repository) Add(root string, funcMap template.FuncMap) (err error) {
 	// List the directories
-	dirs := []string{}
-	err = filepath.Walk(
-		root,
-		func(path string, info os.FileInfo, e error) error {
-			if e != nil {
-				return e
-			}
-			if info.IsDir() {
-				dirs = append(dirs, path)
-			}
-			return nil
-		},
-	)
+	pattern := fmt.Sprintf("%s/*%s", strings.TrimRight(root, "/"), suffix)
+	allFileList, err := filepath.Glob(pattern)
 	if err != nil {
-		return err
+		return
 	}
-
-	// Add each sub-directory as namespace
-	for _, dir := range dirs {
-		//namespace := strings.Replace(dir, root, "", 1)
-		d := strings.Split(dir, string(os.PathSeparator))
-		ro := strings.Split(root, string(os.PathSeparator))
-		namespace := strings.Join(d[len(ro):], "/")
-		err = r.addDir(dir, namespace, pattern, funcMap)
+	for _, filename := range allFileList {
+		t, err := template.New("").Funcs(funcMap).ParseFiles(filename)
 		if err != nil {
 			return err
 		}
+		relativeName := strings.TrimPrefix(filename, root)
+		namespace := r.GetNamespace(relativeName)
+		r.templates[namespace] = t
 	}
-	return nil
+
+	return
+}
+
+func (r *Repository) GetNamespace(filename string) (namespace string) {
+	namespace = strings.TrimSuffix(filename, suffix)
+	namespace = strings.ReplaceAll(namespace, "\\", ".")
+	namespace = strings.ReplaceAll(namespace, "/", ".")
+	namespace = strings.Trim(namespace, ".")
+	return
+}
+
+// Add adds a root directory to the repository, recursively. Match only the
+// given file extension. Blocks on the same namespace will be overridden. Does
+// not follow symbolic links.
+func (r *Repository) AddFromPackrBox(box packr.Box, funcMap template.FuncMap) (err error) {
+	// List the directories
+	allFileList := box.List()
+
+	var content string
+	var filename string
+	for _, filename = range allFileList {
+		if !strings.Contains(filename, suffix) {
+			continue
+		}
+		content, err = box.FindString(filename)
+		if err != nil {
+			return
+		}
+		t, err := template.New("").Funcs(funcMap).Parse(content)
+		if err != nil {
+			return err
+		}
+		namespace := r.GetNamespace(filename)
+		r.templates[namespace] = t
+	}
+	return
 }
 
 // addDir parses a directory.
@@ -190,8 +215,8 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 	if name == "" {
 		return "", fmt.Errorf("unnamed block")
 	}
-	path := strings.Split(name, "/")
-	namespace := strings.Join(path[0:len(path)-1], "/")
+	path := strings.Split(name, ".")
+	namespace := strings.Join(path[0:len(path)-1], ".")
 	if namespace == "." {
 		namespace = ""
 	}
@@ -210,31 +235,16 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 	return b.String(), nil
 }
 
-// AddTemplateFuncs add custom functions to template
-func (r *Repository) AddTemplateFuncs(name string, funcMap template.FuncMap) (err error) {
-	// Prepare namespace and block name
-	if name == "" {
-		return fmt.Errorf("unnamed block")
-	}
-	path := strings.Split(name, "/")
-	namespace := strings.Join(path[0:len(path)-1], "/")
-	if namespace == "." {
-		namespace = ""
-	}
-	// Execute the template
-	t, ok := r.templates[namespace]
-	if ok == false {
-		return fmt.Errorf("unknown namespace \"%s\"", namespace)
-	}
-	r.templates[namespace] = t.Funcs(funcMap) // recover template
-	return nil
-}
-
 var defaultRepository = NewRepository()
 
 // Add method for the default repository.
-func Add(root string, ext string, funcMap template.FuncMap) error {
-	return defaultRepository.Add(root, ext, funcMap)
+func Add(root string, funcMap template.FuncMap) error {
+	return defaultRepository.Add(root, funcMap)
+}
+
+// Add method for the default repository.
+func AddFromPackrBox(box packr.Box, funcMap template.FuncMap) error {
+	return defaultRepository.AddFromPackrBox(box, funcMap)
 }
 
 // Get method for the default repository.
