@@ -187,6 +187,16 @@ func (r *Repository) AddFromPackrBox(box *packr.Box, funcMap template.FuncMap) (
 	return
 }
 
+func (r *Repository) AddFromContent(filename string, content string, funcMap template.FuncMap) (err error) {
+	t, err := template.New("").Funcs(funcMap).Parse(content)
+	if err != nil {
+		return err
+	}
+	namespace := r.GetNamespace(filename)
+	r.templates[namespace] = t
+	return
+}
+
 // addDir parses a directory.
 func (r *Repository) addDir(path, namespace, pattern string, funcMap template.FuncMap) error {
 	// Parse the template
@@ -240,6 +250,11 @@ var defaultRepository = NewRepository()
 // Add method for the default repository.
 func Add(root string, funcMap template.FuncMap) error {
 	return defaultRepository.Add(root, funcMap)
+}
+
+// Add method for the default repository.
+func AddFromContent(filename string, content string, funcMap template.FuncMap) error {
+	return defaultRepository.AddFromContent(filename, content, funcMap)
 }
 
 // Add method for the default repository.
