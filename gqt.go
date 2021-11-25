@@ -111,8 +111,6 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
-
-	"github.com/gobuffalo/packr/v2"
 )
 
 // Repository stores SQL templates.
@@ -157,33 +155,6 @@ func (r *Repository) GetNamespace(filename string) (namespace string) {
 	namespace = strings.ReplaceAll(namespace, "\\", ".")
 	namespace = strings.ReplaceAll(namespace, "/", ".")
 	namespace = strings.Trim(namespace, ".")
-	return
-}
-
-// Add adds a root directory to the repository, recursively. Match only the
-// given file extension. Blocks on the same namespace will be overridden. Does
-// not follow symbolic links.
-func (r *Repository) AddFromPackrBox(box *packr.Box, funcMap template.FuncMap) (err error) {
-	// List the directories
-	allFileList := box.List()
-
-	var content string
-	var filename string
-	for _, filename = range allFileList {
-		if !strings.Contains(filename, suffix) {
-			continue
-		}
-		content, err = box.FindString(filename)
-		if err != nil {
-			return
-		}
-		t, err := template.New("").Funcs(funcMap).Parse(content)
-		if err != nil {
-			return err
-		}
-		namespace := r.GetNamespace(filename)
-		r.templates[namespace] = t
-	}
 	return
 }
 
@@ -255,11 +226,6 @@ func Add(root string, funcMap template.FuncMap) error {
 // Add method for the default repository.
 func AddFromContent(filename string, content string, funcMap template.FuncMap) error {
 	return defaultRepository.AddFromContent(filename, content, funcMap)
-}
-
-// Add method for the default repository.
-func AddFromPackrBox(box *packr.Box, funcMap template.FuncMap) error {
-	return defaultRepository.AddFromPackrBox(box, funcMap)
 }
 
 // Get method for the default repository.
