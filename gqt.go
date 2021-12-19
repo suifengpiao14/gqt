@@ -239,6 +239,10 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 var g = singleflight.Group{}
 
 func Flight(sql string, fn func() (interface{}, error)) (err error) {
+	if sql == "" {
+		err = errors.New("sql must not be empty")
+		return
+	}
 	_, err, _ = g.Do(GetMD5LOWER(sql), fn)
 	if err != nil {
 		err = errors.WithStack(err)
