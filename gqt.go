@@ -195,18 +195,13 @@ func (r *Repository) Exec(name string, data interface{}) (s string, err error) {
 	return
 }
 
-type GetSqlInput struct {
-	Name string
-	Data interface{}
-}
-
-// Exec is a shortcut for r.Parse(), but panics if an error occur.
-func (r *Repository) GetSql(input *GetSqlInput, output *string) (err error) {
-	if input.Name == "" {
-		err = errors.New("input.Name not be empty")
+// GetSql is a shortcut for r.Parse(), but panics if an error occur.
+func (r *Repository) GetSql(name string, args interface{}, output *string) (err error) {
+	if name == "" {
+		err = errors.New("name not be empty")
 		return err
 	}
-	*output, err = r.Parse(input.Name, input.Data)
+	*output, err = r.Parse(name, args)
 	return
 }
 
