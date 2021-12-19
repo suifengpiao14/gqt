@@ -107,6 +107,7 @@ package gqt
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -197,6 +198,10 @@ type GetSqlInput struct {
 
 // Exec is a shortcut for r.Parse(), but panics if an error occur.
 func (r *Repository) GetSql(input *GetSqlInput, output *string) (err error) {
+	if input.Name == "" {
+		err = errors.New("input.Name not be empty")
+		return err
+	}
 	*output, err = r.Parse(input.Name, input.Data)
 	return
 }
