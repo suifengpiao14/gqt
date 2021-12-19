@@ -107,12 +107,15 @@ package gqt
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"text/template"
 
 	"github.com/pkg/errors"
+	"golang.org/x/sync/singleflight"
 )
 
 // Repository stores SQL templates.
@@ -231,6 +234,21 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 		return "", err
 	}
 	return b.String(), nil
+}
+
+var g = singleflight.Group{}
+
+func Flight(sql string, fn func() (interface{}, error)) (err error) {
+	_, err, _ = g.Do(GetMD5LOWER(sql), fn)
+	if err != nil {
+		err = errors.WithStack(err)
+	}
+	return
+}
+func GetMD5LOWER(s string) string {
+	h := md5.New()
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 var defaultRepository = NewRepository()
