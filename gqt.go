@@ -190,6 +190,17 @@ func (r *Repository) Exec(name string, data interface{}) (s string, err error) {
 	return
 }
 
+type GetSqlInput struct {
+	Name string
+	Data interface{}
+}
+
+// Exec is a shortcut for r.Parse(), but panics if an error occur.
+func (r *Repository) GetSql(input *GetSqlInput, output *string) (err error) {
+	*output, err = r.Parse(input.Name, input.Data)
+	return
+}
+
 // Parse executes the template and returns the resulting SQL or an error.
 func (r *Repository) Parse(name string, data interface{}) (string, error) {
 	// Prepare namespace and block name
