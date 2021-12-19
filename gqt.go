@@ -108,6 +108,7 @@ package gqt
 import (
 	"bytes"
 	"crypto/md5"
+	"embed"
 	"encoding/hex"
 	"fmt"
 	"path/filepath"
@@ -275,4 +276,43 @@ func Exec(name string, data interface{}) (s string, e error) {
 // Parse method for the default repository.
 func Parse(name string, data interface{}) (string, error) {
 	return defaultRepository.Parse(name, data)
+}
+
+// ReadEmbedFS read embed file
+func ReadEmbedFS(repositoryFS embed.FS, filename string, fileMap *map[string][]byte) {
+	filename = strings.TrimRight(filename, "/")
+	if len(filename) >= 2 {
+		firstTwoLetter := filename[0:2]
+		if firstTwoLetter == "./" { // 切除./ 开头的路径
+			filename = filename[2:]
+		}
+	}
+	fsFile, err := repositoryFS.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+	fsInfo, err := fsFile.Stat()
+	if err != nil {
+		panic(err)
+	}
+	if fsInfo.IsDir() {
+		fsList, err := repositoryFS.ReadDir(filename)
+		if err != nil {
+			panic(err)
+		}
+		for _, fileInfo := range fsList {
+			subFilename := fmt.Sprintf("%s/%s", filename, fileInfo.Name())
+			if fileInfo.IsDir() {
+
+				ReadEmbedFS(repositoryFS, subFilename, fileMap)
+				continue
+			}
+			b, err := repositoryFS.ReadFile(subFilename)
+			if err != nil {
+				panic(err)
+			}
+			(*fileMap)[subFilename] = b
+		}
+		return
+	}
 }
