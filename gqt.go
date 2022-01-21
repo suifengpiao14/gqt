@@ -190,6 +190,31 @@ func (r *Repository) Get(name string) (s string, err error) {
 	return r.Exec(name, nil)
 }
 
+// GetByNamespace get all template under namespace
+func (r *Repository) GetByNamespace(namespace string) (s map[string]string, err error) {
+	t, ok := r.templates[namespace]
+	if !ok {
+		err = fmt.Errorf("not found namespace:%s", namespace)
+		return
+	}
+	s = make(map[string]string, 0)
+	templates := t.Templates()
+	for _, tpl := range templates {
+		name := tpl.Name()
+		if name == "" {
+			continue
+		}
+		var b bytes.Buffer
+		err = tpl.Execute(&b, nil)
+		if err != nil {
+			return
+		}
+		fullname := fmt.Sprintf("%s.%s", namespace, name)
+		s[fullname] = b.String()
+	}
+	return
+}
+
 // Exec is a shortcut for r.Parse(), but panics if an error occur.
 func (r *Repository) Exec(name string, data interface{}) (s string, err error) {
 	s, err = r.Parse(name, data)
