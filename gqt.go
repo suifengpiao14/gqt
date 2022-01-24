@@ -144,12 +144,12 @@ func (r *Repository) Add(root string, funcMap template.FuncMap) (err error) {
 		return
 	}
 	for _, filename := range allFileList {
-		t, err := template.New("").Funcs(funcMap).ParseFiles(filename)
+		relativeName := strings.TrimPrefix(filename, root)
+		namespace := r.GetNamespace(relativeName)
+		t, err := template.New(namespace).Funcs(funcMap).ParseFiles(filename)
 		if err != nil {
 			return err
 		}
-		relativeName := strings.TrimPrefix(filename, root)
-		namespace := r.GetNamespace(relativeName)
 		r.templates[namespace] = t
 	}
 
@@ -165,24 +165,13 @@ func (r *Repository) GetNamespace(filename string) (namespace string) {
 }
 
 func (r *Repository) AddFromContent(filename string, content string, funcMap template.FuncMap) (err error) {
-	t, err := template.New("").Funcs(funcMap).Parse(content)
+	namespace := r.GetNamespace(filename)
+	t, err := template.New(namespace).Funcs(funcMap).Parse(content)
 	if err != nil {
 		return err
 	}
-	namespace := r.GetNamespace(filename)
 	r.templates[namespace] = t
 	return
-}
-
-// addDir parses a directory.
-func (r *Repository) addDir(path, namespace, pattern string, funcMap template.FuncMap) error {
-	// Parse the template
-	t, err := template.New("").Funcs(funcMap).ParseGlob(filepath.Join(path, pattern))
-	if err != nil {
-		return err
-	}
-	r.templates[namespace] = t
-	return nil
 }
 
 // Get is a shortcut for r.Exec(), passing nil as data.
@@ -201,15 +190,16 @@ func (r *Repository) GetByNamespace(namespace string) (s map[string]string, err 
 	templates := t.Templates()
 	for _, tpl := range templates {
 		name := tpl.Name()
-		if name == "" {
-			continue
-		}
 		var b bytes.Buffer
 		err = tpl.Execute(&b, nil)
 		if err != nil {
 			return
 		}
 		fullname := fmt.Sprintf("%s.%s", namespace, name)
+		content := strings.Trim(b.String(), "\r\n")
+		if len(content) == 0 {
+			continue
+		}
 		s[fullname] = b.String()
 	}
 	return
