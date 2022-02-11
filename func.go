@@ -1,6 +1,8 @@
 package gqt
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -10,7 +12,9 @@ var TemplatefuncMap = template.FuncMap{
 	"zeroTime":      ZeroTime,
 	"currentTime":   CurrentTime,
 	"permanentTime": PermanentTime,
-	"Contains":      strings.Contains,
+	"contains":      strings.Contains,
+	"inIntSet":      InIntSet,
+	"inStrSet":      InStrSet,
 }
 
 func ZeroTime() string {
@@ -23,4 +27,20 @@ func CurrentTime() string {
 
 func PermanentTime() string {
 	return "3000-12-31 23:59:59"
+}
+
+func InIntSet(data []int) (str string) {
+	var formatData = make([]string, 0)
+	for _, val := range data {
+		valStr := strconv.Itoa(val)
+		formatData = append(formatData, valStr)
+	}
+	str = strings.Join(formatData, ",")
+	return
+}
+
+func InStrSet(data []string) (str string) {
+	str = strings.Join(data, "\",\"")
+	str = fmt.Sprintf("\"%s\"", str)
+	return
 }
