@@ -115,8 +115,10 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/singleflight"
+	"gorm.io/gorm/logger"
 )
 
 // Repository stores SQL templates.
@@ -221,6 +223,27 @@ func (r *Repository) GetSql(name string, args interface{}, output *string) (err 
 	return
 }
 
+// 支持返回Prepared Statement ,该模式优势1. 提升性能，避免重复解析 SQL 带来的开销，2. 避免 SQL 注入 缺点： 1. 存在两次与数据库的通信，在密集进行 SQL 查询的情况下，可能会出现 I/O 瓶颈
+func (r *Repository) GetStatment(name string, data interface{}) (sql string, vars []interface{}, err error) {
+	if name == "" {
+		err = errors.New("name not be empty")
+		return "", nil, err
+	}
+	sqlNamed, err := r.Parse(name, data)
+	sql, vars, err = sqlx.Named(sqlNamed, data)
+	return
+}
+
+//无sql注入的安全方式
+func (r *Repository) GetSafeSQL(name string, data interface{}, sql *string) (err error) {
+	sqlStatement, vars, err := r.GetStatment(name, data)
+	if err != nil {
+		return
+	}
+	*sql = logger.ExplainSQL(sqlStatement, nil, `'`, vars...)
+	return
+}
+
 // Parse executes the template and returns the resulting SQL or an error.
 func (r *Repository) Parse(name string, data interface{}) (string, error) {
 	// Prepare namespace and block name
@@ -286,6 +309,16 @@ func Get(name string) (s string, err error) {
 // Exec method for the default repository.
 func Exec(name string, data interface{}) (s string, e error) {
 	return defaultRepository.Exec(name, data)
+}
+
+// Get method for the default repository.
+func GetStatment(name string, data interface{}) (sql string, vars []interface{}, err error) {
+	return defaultRepository.GetStatment(name, data)
+}
+
+// Exec method for the default repository.
+func GetSafeSQL(name string, data interface{}, sql *string) (e error) {
+	return defaultRepository.GetSafeSQL(name, data, sql)
 }
 
 // Parse method for the default repository.
