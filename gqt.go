@@ -302,12 +302,12 @@ func AddFromContent(filename string, content string, funcMap template.FuncMap) e
 }
 
 // Get method for the default repository.
-func Get(name string) (s string, err error) {
+func Get(name string) (sql string, err error) {
 	return defaultRepository.Get(name)
 }
 
 // Exec method for the default repository.
-func Exec(name string, data interface{}) (s string, e error) {
+func Exec(name string, data interface{}) (sql string, e error) {
 	return defaultRepository.Exec(name, data)
 }
 

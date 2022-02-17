@@ -5,6 +5,7 @@
 package gqt
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,29 +24,19 @@ func init() {
 
 func Test(t *testing.T) {
 	for _, dir := range []string{"pkg1", "pkg2"} {
-		err := Add(filepath.Join(testDir, dir), "*.sql")
+		err := Add(filepath.Join(testDir, dir), TemplatefuncMap)
 		if err != nil {
 			t.Error(err)
 		}
 	}
 
-	if Get("test1") != "test1" {
-		t.Error("test1")
+	data := make(map[string]interface{})
+	data["APIID"] = "1548452447"
+	var sql string
+	err := GetSafeSQL("parameter.getAllByAPIID", data, &sql)
+	if err != nil {
+		panic(err)
 	}
+	fmt.Printf(sql)
 
-	if Exec("test2", true) != "Yes" {
-		t.Error("test2")
-	}
-
-	if Get("sub/test3") != "test3" {
-		t.Error("test3")
-	}
-
-	if Get("test4") != "test4" {
-		t.Error("test4")
-	}
-
-	if Get("test5") != "test5" {
-		t.Error("test5")
-	}
 }
