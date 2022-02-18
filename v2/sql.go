@@ -2,12 +2,11 @@ package main
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"gorm.io/gorm/logger"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"text/template"
 
@@ -21,7 +20,7 @@ type Repository struct {
 }
 
 type DataVolume struct {
-	Data interface{}
+	Data  interface{}
 	Extra *map[string]interface{}
 }
 
@@ -63,18 +62,22 @@ func (r *Repository) AddByNamespace(namespace string, content string, funcMap te
 }
 
 // GetByNamespace get all template under namespace
-func (r *Repository) GetByNamespace(namespace string, data map[string]interface{}) (sqlMap map[string]string, err error) {
+func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap map[string]string, err error) {
 	t, ok := r.templates[namespace]
 	if !ok {
 		err = fmt.Errorf("not found namespace:%s", namespace)
 		return
+	}
+	mapData, err := interface2map(data)
+	if err != nil {
+		return nil, err
 	}
 	sqlMap = make(map[string]string, 0)
 	templates := t.Templates()
 	for _, tpl := range templates {
 		name := tpl.Name()
 		var b bytes.Buffer
-		err = tpl.Execute(&b, &data)
+		err = tpl.Execute(&b, &mapData)
 		if err != nil {
 			return
 		}
@@ -84,8 +87,8 @@ func (r *Repository) GetByNamespace(namespace string, data map[string]interface{
 			continue
 		}
 		sqlNamed := b.String()
-		sqlStatement,vars,err:=sqlx.Named(sqlNamed,data)
-		if err !=nil{
+		sqlStatement, vars, err := sqlx.Named(sqlNamed, mapData)
+		if err != nil {
 			return nil, err
 		}
 		sqlStr := r.Statement2SQL(sqlStatement, vars)
@@ -95,24 +98,28 @@ func (r *Repository) GetByNamespace(namespace string, data map[string]interface{
 }
 
 // 支持返回Prepared Statement ,该模式优势1. 提升性能，避免重复解析 SQL 带来的开销，2. 避免 SQL 注入 缺点： 1. 存在两次与数据库的通信，在密集进行 SQL 查询的情况下，可能会出现 I/O 瓶颈
-func (r *Repository) GetStatement(name string, data map[string]interface{}) (sqlStatement string, vars []interface{}, err error) {
+func (r *Repository) GetStatement(name string, data interface{}) (sqlStatement string, vars []interface{}, err error) {
 	if name == "" {
 		err = errors.New("name not be empty")
 		return "", nil, err
 	}
-	sqlNamed, err := r.Parse(name, &data)// 当data为map[string]interface{}时，模板内可以改变data值
-	if err!=nil{
+	mapData, err := interface2map(data)
+	if err != nil {
 		return "", nil, err
 	}
-	sqlStatement,vars,err=sqlx.Named(sqlNamed,data)
-	if err !=nil{
+	sqlNamed, err := r.Parse(name, &mapData) // 当data为map[string]interface{}时，模板内可以改变data值
+	if err != nil {
+		return "", nil, err
+	}
+	sqlStatement, vars, err = sqlx.Named(sqlNamed, mapData)
+	if err != nil {
 		return
 	}
 	return
 }
 
 //无sql注入的安全方式
-func (r *Repository) GetSQL(name string, data map[string]interface{}) (sqlStr string, err error) {
+func (r *Repository) GetSQL(name string, data interface{}) (sqlStr string, err error) {
 	sqlStatement, vars, err := r.GetStatement(name, data)
 	if err != nil {
 		return
@@ -165,34 +172,53 @@ func Flight(sqlStr string, fn func() (interface{}, error)) (err error) {
 	}
 	return
 }
-func GetMD5LOWER(s string) string {
-	h := md5.New()
-	h.Write([]byte(s))
-	return hex.EncodeToString(h.Sum(nil))
+
+func interface2map(data interface{}) (out map[string]interface{}, err error) {
+	out = make(map[string]interface{}, 0)
+	v := reflect.Indirect(reflect.ValueOf(data))
+	switch v.Kind() {
+	case reflect.Map:
+		keys := v.MapKeys()
+		for _, key := range keys {
+			v := v.MapIndex(key).Interface()
+			out[key.String()] = v
+		}
+	case reflect.Struct:
+		num := v.NumField()
+		for i := 0; i < num; i++ {
+			name := v.Type().Field(i).Name
+			v := v.Field(i).Interface()
+			out[name] = v
+		}
+	default:
+		err = fmt.Errorf("not support type %#v", data)
+	}
+	return
 }
 
 var defaultRepository = NewRepository()
 
 // AddByDir method for the default repository.
 func AddByDir(dir string, funcMap template.FuncMap) error {
-	return defaultRepository.AddByDir(dir,  funcMap)
+	return defaultRepository.AddByDir(dir, funcMap)
 }
+
 // AddByNamespace method for the default repository.
 func AddByNamespace(filename string, content string, funcMap template.FuncMap) error {
 	return defaultRepository.AddByNamespace(filename, content, funcMap)
 }
 
-func GetByNamespace(namespace string, data map[string]interface{}) (sqlMap map[string]string, err error) {
+func GetByNamespace(namespace string, data interface{}) (sqlMap map[string]string, err error) {
 	return defaultRepository.GetByNamespace(namespace, data)
 }
 
 // Get method for the default repository.
-func GetStatement(name string, data map[string]interface{}) (sql string, vars interface{}, err error) {
+func GetStatement(name string, data interface{}) (sql string, vars interface{}, err error) {
 	return defaultRepository.GetStatement(name, data)
 }
 
 // Exec method for the default repository.
-func GetSQL(name string, data map[string]interface{}) (sql string, e error) {
+func GetSQL(name string, data interface{}) (sql string, e error) {
 	return defaultRepository.GetSQL(name, data)
 }
 

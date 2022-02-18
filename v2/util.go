@@ -1,14 +1,14 @@
 package main
 
 import (
+	"crypto/md5"
 	"embed"
+	"encoding/hex"
 	"fmt"
-	"github.com/fatih/structs"
 	"strings"
 )
 
-
-func  FileName2Namespace(filename string) (namespace string) {
+func FileName2Namespace(filename string) (namespace string) {
 	namespace = strings.TrimSuffix(filename, suffix)
 	namespace = strings.ReplaceAll(namespace, "\\", ".")
 	namespace = strings.ReplaceAll(namespace, "/", ".")
@@ -16,8 +16,10 @@ func  FileName2Namespace(filename string) (namespace string) {
 	return
 }
 
-func Struct2Map(s interface{})(m map[string]interface{}){
-	return structs.Map(s)
+func GetMD5LOWER(s string) string {
+	h := md5.New()
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // ReadEmbedFS read embed file

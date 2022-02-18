@@ -23,7 +23,31 @@ func init() {
 	testDir = filepath.Join(testDir, "../test")
 }
 
-func Test(t *testing.T) {
+func TestStruct(t *testing.T) {
+	for _, dir := range []string{"pkg1", "pkg2"} {
+		err := AddByDir(filepath.Join(testDir, dir), TemplatefuncMap)
+		if err != nil {
+			panic(err)
+		}
+	}
+	type structData struct {
+		APIID int
+		Ids   string
+	}
+
+	data := &structData{
+		APIID: 1,
+		Ids:   "1,2,3,4,5,6",
+	}
+	sql, err := GetSQL("parameter.getAllByAPIID", data)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf(sql)
+
+}
+
+func TestMap(t *testing.T) {
 	for _, dir := range []string{"pkg1", "pkg2"} {
 		err := AddByDir(filepath.Join(testDir, dir), TemplatefuncMap)
 		if err != nil {
@@ -33,8 +57,8 @@ func Test(t *testing.T) {
 
 	data := make(map[string]interface{})
 	data["APIID"] = 1
-	data["Ids"]="1,2,4"
-	sql,err := GetSQL("parameter.getAllByAPIID", data)
+	data["Ids"] = "1,2,4"
+	sql, err := GetSQL("parameter.getAllByAPIID", data)
 	if err != nil {
 		panic(err)
 	}
@@ -42,16 +66,15 @@ func Test(t *testing.T) {
 
 }
 
-func TestSQLNamed(t *testing.T)  {
-	namedSql:="select * from `test_table` where `id`=:id and name=:name"
-	data:=map[string]interface{}{
-		"id":1,
-		"name":"hahha",
-		"more":"more",
-
+func TestSQLNamed(t *testing.T) {
+	namedSql := "select * from `test_table` where `id`=:id and name=:name"
+	data := map[string]interface{}{
+		"id":   1,
+		"name": "hahha",
+		"more": "more",
 	}
-	sqlStatement,vars,err:=sqlx.Named(namedSql,data)
-	if err !=nil{
+	sqlStatement, vars, err := sqlx.Named(namedSql, data)
+	if err != nil {
 		panic(err)
 	}
 	fmt.Println(vars)
