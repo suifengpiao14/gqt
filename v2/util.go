@@ -3,21 +3,21 @@ package main
 import (
 	"embed"
 	"fmt"
+	"github.com/fatih/structs"
 	"strings"
-	"time"
 )
 
-// : 在sqlx.Named方法中 为标记为变量开始的特殊字符，写入时间字符会有冲突(使用:: 和常规查看不符，所以时间不内置到模板函数中)
-func ZeroTime() string {
-	return "0000-00-00 00:00:00"
+
+func  FileName2Namespace(filename string) (namespace string) {
+	namespace = strings.TrimSuffix(filename, suffix)
+	namespace = strings.ReplaceAll(namespace, "\\", ".")
+	namespace = strings.ReplaceAll(namespace, "/", ".")
+	namespace = strings.Trim(namespace, ".")
+	return
 }
 
-func CurrentTime() string {
-	return time.Now().Format("2006-01-02 15:04:05")
-}
-
-func PermanentTime() string {
-	return "3000-12-31 23:59:59"
+func Struct2Map(s interface{})(m map[string]interface{}){
+	return structs.Map(s)
 }
 
 // ReadEmbedFS read embed file

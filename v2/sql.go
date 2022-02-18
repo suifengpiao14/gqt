@@ -5,18 +5,24 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"github.com/jmoiron/sqlx"
+	"gorm.io/gorm/logger"
+	"path/filepath"
 	"strings"
 	"text/template"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/singleflight"
-	"gorm.io/gorm/logger"
 )
 
 // Repository stores SQL templates.
 type Repository struct {
 	templates map[string]*template.Template // namespace: template
+}
+
+type DataVolume struct {
+	Data interface{}
+	Extra *map[string]interface{}
 }
 
 // NewRepository creates a new Repository.
@@ -28,6 +34,25 @@ func NewRepository() *Repository {
 
 var suffix = ".sql.tpl"
 
+func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error) {
+	// List the directories
+	pattern := fmt.Sprintf("%s/*%s", strings.TrimRight(root, "/"), suffix)
+	allFileList, err := filepath.Glob(pattern)
+	if err != nil {
+		return
+	}
+	for _, filename := range allFileList {
+		relativeName := strings.TrimPrefix(filename, root)
+		namespace := FileName2Namespace(relativeName)
+		t, err := template.New(namespace).Funcs(funcMap).ParseFiles(filename)
+		if err != nil {
+			return err
+		}
+		r.templates[namespace] = t
+	}
+	return
+}
+
 func (r *Repository) AddByNamespace(namespace string, content string, funcMap template.FuncMap) (err error) {
 	t, err := template.New(namespace).Funcs(funcMap).Parse(content)
 	if err != nil {
@@ -38,7 +63,7 @@ func (r *Repository) AddByNamespace(namespace string, content string, funcMap te
 }
 
 // GetByNamespace get all template under namespace
-func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap map[string]string, err error) {
+func (r *Repository) GetByNamespace(namespace string, data map[string]interface{}) (sqlMap map[string]string, err error) {
 	t, ok := r.templates[namespace]
 	if !ok {
 		err = fmt.Errorf("not found namespace:%s", namespace)
@@ -49,49 +74,55 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap 
 	for _, tpl := range templates {
 		name := tpl.Name()
 		var b bytes.Buffer
-		err = tpl.Execute(&b, data)
+		err = tpl.Execute(&b, &data)
 		if err != nil {
 			return
 		}
-		fullname := fmt.Sprintf("%s.%s", namespace, name)
+		fullName := fmt.Sprintf("%s.%s", namespace, name)
 		content := strings.Trim(b.String(), "\r\n")
 		if len(content) == 0 {
 			continue
 		}
 		sqlNamed := b.String()
-		sqlStatement, vars, err := sqlx.Named(sqlNamed, data)
-		if err != nil {
+		sqlStatement,vars,err:=sqlx.Named(sqlNamed,data)
+		if err !=nil{
 			return nil, err
 		}
-		sql := r.Statement2SQL(sqlStatement, vars)
-		sqlMap[fullname] = sql
+		sqlStr := r.Statement2SQL(sqlStatement, vars)
+		sqlMap[fullName] = sqlStr
 	}
 	return
 }
 
 // 支持返回Prepared Statement ,该模式优势1. 提升性能，避免重复解析 SQL 带来的开销，2. 避免 SQL 注入 缺点： 1. 存在两次与数据库的通信，在密集进行 SQL 查询的情况下，可能会出现 I/O 瓶颈
-func (r *Repository) GetStatement(name string, data interface{}) (sql string, vars []interface{}, err error) {
+func (r *Repository) GetStatement(name string, data map[string]interface{}) (sqlStatement string, vars []interface{}, err error) {
 	if name == "" {
 		err = errors.New("name not be empty")
 		return "", nil, err
 	}
-	sqlNamed, err := r.Parse(name, data)
-	sql, vars, err = sqlx.Named(sqlNamed, data)
+	sqlNamed, err := r.Parse(name, &data)// 当data为map[string]interface{}时，模板内可以改变data值
+	if err!=nil{
+		return "", nil, err
+	}
+	sqlStatement,vars,err=sqlx.Named(sqlNamed,data)
+	if err !=nil{
+		return
+	}
 	return
 }
 
 //无sql注入的安全方式
-func (r *Repository) GetSQL(name string, data interface{}) (sql string, err error) {
+func (r *Repository) GetSQL(name string, data map[string]interface{}) (sqlStr string, err error) {
 	sqlStatement, vars, err := r.GetStatement(name, data)
 	if err != nil {
 		return
 	}
-	sql = r.Statement2SQL(sqlStatement, vars)
+	sqlStr = r.Statement2SQL(sqlStatement, vars)
 	return
 }
 
-func (r *Repository) Statement2SQL(sqlStatement string, vars []interface{}) (sql string) {
-	sql = logger.ExplainSQL(sqlStatement, nil, `'`, vars...)
+func (r *Repository) Statement2SQL(sqlStatement string, vars []interface{}) (sqlStr string) {
+	sqlStr = logger.ExplainSQL(sqlStatement, nil, `'`, vars...)
 	return
 }
 
@@ -123,12 +154,12 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 
 var g = singleflight.Group{}
 
-func Flight(sql string, fn func() (interface{}, error)) (err error) {
-	if sql == "" {
+func Flight(sqlStr string, fn func() (interface{}, error)) (err error) {
+	if sqlStr == "" {
 		err = errors.New("sql must not be empty")
 		return
 	}
-	_, err, _ = g.Do(GetMD5LOWER(sql), fn)
+	_, err, _ = g.Do(GetMD5LOWER(sqlStr), fn)
 	if err != nil {
 		err = errors.WithStack(err)
 	}
@@ -142,22 +173,26 @@ func GetMD5LOWER(s string) string {
 
 var defaultRepository = NewRepository()
 
+// AddByDir method for the default repository.
+func AddByDir(dir string, funcMap template.FuncMap) error {
+	return defaultRepository.AddByDir(dir,  funcMap)
+}
 // AddByNamespace method for the default repository.
 func AddByNamespace(filename string, content string, funcMap template.FuncMap) error {
 	return defaultRepository.AddByNamespace(filename, content, funcMap)
 }
 
-func GetByNamespace(namespace string, data interface{}) (sqlMap map[string]string, err error) {
+func GetByNamespace(namespace string, data map[string]interface{}) (sqlMap map[string]string, err error) {
 	return defaultRepository.GetByNamespace(namespace, data)
 }
 
 // Get method for the default repository.
-func GetStatement(name string, data interface{}) (sql string, vars []interface{}, err error) {
+func GetStatement(name string, data map[string]interface{}) (sql string, vars interface{}, err error) {
 	return defaultRepository.GetStatement(name, data)
 }
 
 // Exec method for the default repository.
-func GetSQL(name string, data interface{}) (sql string, e error) {
+func GetSQL(name string, data map[string]interface{}) (sql string, e error) {
 	return defaultRepository.GetSQL(name, data)
 }
 

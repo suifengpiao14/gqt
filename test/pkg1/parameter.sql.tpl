@@ -2,7 +2,7 @@
 
 
 {{define "getAllByAPIID"}}
-select * from `parameter` where `api_id`=:APIID and `deleted_at`="00::00::00 00::00";
+select * from `parameter` where `api_id`=:APIID and `deleted_at`={{zeroTime .}} and `id` in ({{in . "Ids"}});
 {{end}}
 
 {{define "insert"}}
