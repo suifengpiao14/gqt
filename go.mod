@@ -1,4 +1,4 @@
-module github.com/suifengpiao14/gqt
+module github.com/suifengpiao14/gqt/v2
 
 go 1.16
 
