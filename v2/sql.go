@@ -1,14 +1,15 @@
-package main
+package gqt
 
 import (
 	"bytes"
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	"gorm.io/gorm/logger"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"text/template"
+
+	"github.com/jmoiron/sqlx"
+	"gorm.io/gorm/logger"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sync/singleflight"

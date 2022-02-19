@@ -2,14 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package gqt
 
 import (
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/jmoiron/sqlx"
 )
 
 var testDir string
