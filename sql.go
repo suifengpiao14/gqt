@@ -150,7 +150,7 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 	// Execute the template
 	var b bytes.Buffer
 	t, ok := r.templates[namespace]
-	if ok == false {
+	if !ok {
 		return "", fmt.Errorf("unknown namespace \"%s\"", namespace)
 	}
 	err := t.ExecuteTemplate(&b, block, data)
@@ -158,6 +158,51 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 		return "", err
 	}
 	return b.String(), nil
+}
+
+func (r *Repository) NewSQLChain() *SQLChain {
+	return &SQLChain{
+		sqlList:       make([]string, 0),
+		sqlRepository: func() *Repository { return r },
+	}
+}
+
+type SQLChain struct {
+	sqlList       []string
+	sqlRepository func() *Repository
+	Error         error
+}
+
+func (s *SQLChain) ParseSQL(tplName string, args interface{}) *SQLChain {
+	if s.sqlRepository == nil {
+		s.Error = fmt.Errorf("want SQLChain.sqlRepository ,have %#v", s)
+	}
+	if s.Error != nil {
+		return s
+	}
+	sql, err := s.sqlRepository().GetSQL(tplName, args)
+	if err != nil {
+		s.Error = err
+		return s
+	}
+	s.sqlList = append(s.sqlList, sql)
+	return s
+}
+func (s *SQLChain) GetAllSQL(tplName string, args interface{}) []string {
+	return s.sqlList
+}
+
+func (s *SQLChain) AddSQL(sql string) {
+	s.sqlList = append(s.sqlList, sql)
+}
+
+// 批量获取sql记录
+func NewSQLChain(sqlRepository func() *Repository) (s *SQLChain) {
+	s = &SQLChain{
+		sqlList:       make([]string, 0),
+		sqlRepository: sqlRepository,
+	}
+	return
 }
 
 var g = singleflight.Group{}
