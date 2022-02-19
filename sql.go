@@ -176,6 +176,9 @@ func Flight(sqlStr string, fn func() (interface{}, error)) (err error) {
 
 func interface2map(data interface{}) (out map[string]interface{}, err error) {
 	out = make(map[string]interface{}, 0)
+	if data == nil {
+		return
+	}
 	v := reflect.Indirect(reflect.ValueOf(data))
 	switch v.Kind() {
 	case reflect.Map:
