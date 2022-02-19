@@ -188,7 +188,7 @@ func (s *SQLChain) ParseSQL(tplName string, args interface{}) *SQLChain {
 	s.sqlList = append(s.sqlList, sql)
 	return s
 }
-func (s *SQLChain) GetAllSQL(tplName string, args interface{}) []string {
+func (s *SQLChain) GetAllSQL() []string {
 	return s.sqlList
 }
 
