@@ -188,10 +188,13 @@ func (s *SQLChain) ParseSQL(tplName string, args interface{}) *SQLChain {
 	s.sqlList = append(s.sqlList, sql)
 	return s
 }
-func (s *SQLChain) GetAllSQL() []string {
-	return s.sqlList
+
+//GetAllSQL get all sql from SQLChain
+func (s *SQLChain) GetAllSQL() (sqlList []string, err error) {
+	return s.sqlList, s.Error
 }
 
+//AddSQL add one sql to SQLChain
 func (s *SQLChain) AddSQL(sql string) {
 	s.sqlList = append(s.sqlList, sql)
 }
