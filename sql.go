@@ -170,19 +170,19 @@ func (r *Repository) NewSQLChain() *SQLChain {
 type SQLChain struct {
 	sqlList       []string
 	sqlRepository func() *Repository
-	Error         error
+	err           error
 }
 
 func (s *SQLChain) ParseSQL(tplName string, args interface{}) *SQLChain {
 	if s.sqlRepository == nil {
-		s.Error = fmt.Errorf("want SQLChain.sqlRepository ,have %#v", s)
+		s.err = fmt.Errorf("want SQLChain.sqlRepository ,have %#v", s)
 	}
-	if s.Error != nil {
+	if s.err != nil {
 		return s
 	}
 	sql, err := s.sqlRepository().GetSQL(tplName, args)
 	if err != nil {
-		s.Error = err
+		s.err = err
 		return s
 	}
 	s.sqlList = append(s.sqlList, sql)
@@ -191,12 +191,25 @@ func (s *SQLChain) ParseSQL(tplName string, args interface{}) *SQLChain {
 
 //GetAllSQL get all sql from SQLChain
 func (s *SQLChain) GetAllSQL() (sqlList []string, err error) {
-	return s.sqlList, s.Error
+	return s.sqlList, s.err
 }
 
 //AddSQL add one sql to SQLChain
 func (s *SQLChain) AddSQL(sql string) {
 	s.sqlList = append(s.sqlList, sql)
+}
+
+func (s *SQLChain) SetError(err error) {
+	if s.err != nil {
+		return
+	}
+	if err != nil {
+		s.err = err
+	}
+}
+
+func (s *SQLChain) Error() (err error) {
+	return s.err
 }
 
 // 批量获取sql记录
