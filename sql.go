@@ -39,6 +39,7 @@ func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error)
 	pattern := fmt.Sprintf("%s/*%s", strings.TrimRight(root, "/"), suffix)
 	allFileList, err := filepath.Glob(pattern)
 	if err != nil {
+		err = errors.WithStack(err)
 		return
 	}
 	for _, filename := range allFileList {
@@ -46,7 +47,7 @@ func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error)
 		namespace := FileName2Namespace(relativeName)
 		t, err := template.New(namespace).Funcs(funcMap).ParseFiles(filename)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		r.templates[namespace] = t
 	}
@@ -56,6 +57,7 @@ func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error)
 func (r *Repository) AddByNamespace(namespace string, content string, funcMap template.FuncMap) (err error) {
 	t, err := template.New(namespace).Funcs(funcMap).Parse(content)
 	if err != nil {
+		err = errors.WithStack(err)
 		return err
 	}
 	r.templates[namespace] = t
@@ -66,7 +68,7 @@ func (r *Repository) AddByNamespace(namespace string, content string, funcMap te
 func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap map[string]string, err error) {
 	t, ok := r.templates[namespace]
 	if !ok {
-		err = fmt.Errorf("not found namespace:%s", namespace)
+		err = errors.Errorf("not found namespace:%s", namespace)
 		return
 	}
 	mapData, err := interface2map(data)
@@ -80,6 +82,7 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap 
 		var b bytes.Buffer
 		err = tpl.Execute(&b, &mapData)
 		if err != nil {
+			err = errors.WithStack(err)
 			return
 		}
 		fullName := fmt.Sprintf("%s.%s", namespace, name)
@@ -90,6 +93,7 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap 
 		sqlNamed := b.String()
 		sqlStatement, vars, err := sqlx.Named(sqlNamed, mapData)
 		if err != nil {
+			err = errors.WithStack(err)
 			return nil, err
 		}
 		sqlStr := r.Statement2SQL(sqlStatement, vars)
@@ -114,6 +118,7 @@ func (r *Repository) GetStatement(name string, data interface{}) (sqlStatement s
 	}
 	sqlStatement, vars, err = sqlx.Named(sqlNamed, mapData)
 	if err != nil {
+		err = errors.WithStack(err)
 		return
 	}
 	return
@@ -138,7 +143,7 @@ func (r *Repository) Statement2SQL(sqlStatement string, vars []interface{}) (sql
 func (r *Repository) Parse(name string, data interface{}) (string, error) {
 	// Prepare namespace and block name
 	if name == "" {
-		return "", fmt.Errorf("unnamed block")
+		return "", errors.Errorf("unnamed block")
 	}
 	path := strings.Split(name, ".")
 	namespace := strings.Join(path[0:len(path)-1], ".")
@@ -151,11 +156,11 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 	var b bytes.Buffer
 	t, ok := r.templates[namespace]
 	if !ok {
-		return "", fmt.Errorf("unknown namespace \"%s\"", namespace)
+		return "", errors.Errorf("unknown namespace \"%s\"", namespace)
 	}
 	err := t.ExecuteTemplate(&b, block, data)
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 	return b.String(), nil
 }
@@ -175,7 +180,7 @@ type SQLChain struct {
 
 func (s *SQLChain) ParseSQL(tplName string, args interface{}) *SQLChain {
 	if s.sqlRepository == nil {
-		s.err = fmt.Errorf("want SQLChain.sqlRepository ,have %#v", s)
+		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
 	}
 	if s.err != nil {
 		return s
@@ -204,6 +209,7 @@ func (s *SQLChain) SetError(err error) {
 		return
 	}
 	if err != nil {
+		err = errors.WithStack(err)
 		s.err = err
 	}
 }
@@ -256,7 +262,7 @@ func interface2map(data interface{}) (out map[string]interface{}, err error) {
 			out[name] = v
 		}
 	default:
-		err = fmt.Errorf("not support type %#v", data)
+		err = errors.Errorf("not support type %#v", data)
 	}
 	return
 }
