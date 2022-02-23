@@ -179,7 +179,7 @@ type SQLChain struct {
 	err           error
 }
 
-func (s *SQLChain) ParseSQL(tplName string, args interface{}, resultMap map[string]interface{}) *SQLChain {
+func (s *SQLChain) ParseSQL(tplName string, args interface{}, result interface{}) *SQLChain {
 	if s.sqlRepository == nil {
 		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
 	}
@@ -192,7 +192,7 @@ func (s *SQLChain) ParseSQL(tplName string, args interface{}, resultMap map[stri
 		return s
 	}
 	s.sqlMap[tplName] = sql
-	s.resultMap[tplName] = resultMap
+	s.resultMap[tplName] = result
 	return s
 }
 
