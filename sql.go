@@ -202,8 +202,17 @@ func (s *SQLChain) GetAllSQL() (sqlMap map[string]string, err error) {
 	return s.sqlMap, s.err
 }
 
+//Exec exec sql
+func (s *SQLChain) Exec(fn func(sqlMap map[string]string) (e error)) (err error) {
+	if s.err != nil {
+		return
+	}
+	s.err = fn(s.sqlMap)
+	return s.err
+}
+
 //Exec exec sql ,get data
-func (s *SQLChain) Exec(fn func(sqlMap map[string]string, resultMap map[string]interface{}) (e error)) (err error) {
+func (s *SQLChain) Scan(fn func(sqlMap map[string]string, resultMap map[string]interface{}) (e error)) (err error) {
 	if s.err != nil {
 		return
 	}
