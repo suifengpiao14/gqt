@@ -167,13 +167,13 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 
 func (r *Repository) NewSQLChain() *SQLChain {
 	return &SQLChain{
-		sqlList:       make([]string, 0),
+		sqlMap:        make(map[string]string),
 		sqlRepository: func() *Repository { return r },
 	}
 }
 
 type SQLChain struct {
-	sqlList       []string
+	sqlMap        map[string]string
 	sqlRepository func() *Repository
 	err           error
 }
@@ -190,18 +190,18 @@ func (s *SQLChain) ParseSQL(tplName string, args interface{}) *SQLChain {
 		s.err = err
 		return s
 	}
-	s.sqlList = append(s.sqlList, sql)
+	s.sqlMap[tplName] = sql
 	return s
 }
 
 //GetAllSQL get all sql from SQLChain
-func (s *SQLChain) GetAllSQL() (sqlList []string, err error) {
-	return s.sqlList, s.err
+func (s *SQLChain) GetAllSQL() (sqlMap map[string]string, err error) {
+	return s.sqlMap, s.err
 }
 
 //AddSQL add one sql to SQLChain
-func (s *SQLChain) AddSQL(sql string) {
-	s.sqlList = append(s.sqlList, sql)
+func (s *SQLChain) AddSQL(name string, sql string) {
+	s.sqlMap[name] = sql
 }
 
 func (s *SQLChain) SetError(err error) {
@@ -221,7 +221,7 @@ func (s *SQLChain) Error() (err error) {
 // 批量获取sql记录
 func NewSQLChain(sqlRepository func() *Repository) (s *SQLChain) {
 	s = &SQLChain{
-		sqlList:       make([]string, 0),
+		sqlMap:        make(map[string]string),
 		sqlRepository: sqlRepository,
 	}
 	return
