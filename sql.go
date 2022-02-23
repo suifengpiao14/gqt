@@ -168,6 +168,7 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 func (r *Repository) NewSQLChain() *SQLChain {
 	return &SQLChain{
 		sqlMap:        make(map[string]string),
+		resultMap:     make(map[string]interface{}, 0),
 		sqlRepository: func() *Repository { return r },
 	}
 }
@@ -233,6 +234,7 @@ func (s *SQLChain) Error() (err error) {
 func NewSQLChain(sqlRepository func() *Repository) (s *SQLChain) {
 	s = &SQLChain{
 		sqlMap:        make(map[string]string),
+		resultMap:     make(map[string]interface{}, 0),
 		sqlRepository: sqlRepository,
 	}
 	return
