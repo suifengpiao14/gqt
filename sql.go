@@ -174,11 +174,12 @@ func (r *Repository) NewSQLChain() *SQLChain {
 
 type SQLChain struct {
 	sqlMap        map[string]string
+	resultMap     map[string]interface{}
 	sqlRepository func() *Repository
 	err           error
 }
 
-func (s *SQLChain) ParseSQL(tplName string, args interface{}) *SQLChain {
+func (s *SQLChain) ParseSQL(tplName string, args interface{}, resultMap map[string]interface{}) *SQLChain {
 	if s.sqlRepository == nil {
 		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
 	}
@@ -191,12 +192,22 @@ func (s *SQLChain) ParseSQL(tplName string, args interface{}) *SQLChain {
 		return s
 	}
 	s.sqlMap[tplName] = sql
+	s.resultMap[tplName] = resultMap
 	return s
 }
 
 //GetAllSQL get all sql from SQLChain
 func (s *SQLChain) GetAllSQL() (sqlMap map[string]string, err error) {
 	return s.sqlMap, s.err
+}
+
+//Exec exec sql ,get data
+func (s *SQLChain) Exec(fn func(sqlMap map[string]string, resultMap map[string]interface{}) (e error)) (err error) {
+	if s.err != nil {
+		return
+	}
+	s.err = fn(s.sqlMap, s.resultMap)
+	return s.err
 }
 
 //AddSQL add one sql to SQLChain
