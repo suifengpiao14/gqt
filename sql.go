@@ -117,6 +117,10 @@ func (r *Repository) GetStatement(name string, data interface{}) (sqlStatement s
 		return "", nil, err
 	}
 	sqlStatement, vars, err = sqlx.Named(sqlNamed, mapData)
+	sqlStatement = strings.ReplaceAll(sqlStatement, "\r", "")
+	sqlStatement = strings.ReplaceAll(sqlStatement, "\n", "")
+	sqlStatement = strings.ReplaceAll(sqlStatement, "  ", " ")
+	sqlStatement = strings.Trim(sqlStatement, " ")
 	if err != nil {
 		err = errors.WithStack(err)
 		return
