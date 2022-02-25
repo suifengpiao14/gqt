@@ -167,14 +167,20 @@ func (r *Repository) Parse(name string, data interface{}) (string, error) {
 
 func (r *Repository) NewSQLChain() *SQLChain {
 	return &SQLChain{
-		sqlMap:        make(map[string]string),
+		sqlRows:       make([]*SQLRow, 0),
 		sqlRepository: func() *Repository { return r },
 	}
 }
 
+type SQLRow struct {
+	Tag       string
+	SQL       string
+	Statment  string
+	Arguments []interface{}
+	Result    interface{}
+}
 type SQLChain struct {
-	sqlMap        map[string]string
-	resultMap     map[string]interface{}
+	sqlRows       []*SQLRow
 	sqlRepository func() *Repository
 	err           error
 }
@@ -191,28 +197,46 @@ func (s *SQLChain) ParseSQL(tplName string, args interface{}, result interface{}
 		s.err = err
 		return s
 	}
-	s.sqlMap[tplName] = sql
-	s.resultMap[tplName] = result
+	sqlRow := &SQLRow{
+		Tag:    tplName,
+		SQL:    sql,
+		Result: result,
+	}
+	s.sqlRows = append(s.sqlRows, sqlRow)
 	return s
 }
 
 //GetAllSQL get all sql from SQLChain
-func (s *SQLChain) GetAllSQL() (sqlMap map[string]string, err error) {
-	return s.sqlMap, s.err
+func (s *SQLChain) SQLRows() (sqlRowList []*SQLRow, err error) {
+	return s.sqlRows, s.err
 }
 
-//Exec exec sql ,get data
-func (s *SQLChain) Exec(fn func(sqlMap map[string]string, resultMap map[string]interface{}) (e error)) (err error) {
+//Exec exec sql
+func (s *SQLChain) Exec(fn func(sqlRowList []*SQLRow) (e error)) (err error) {
 	if s.err != nil {
 		return
 	}
-	s.err = fn(s.sqlMap, s.resultMap)
+	s.err = fn(s.sqlRows)
+	return s.err
+}
+
+//Exec exec sql ,get data
+func (s *SQLChain) Scan(fn func(sqlRowList []*SQLRow) (e error)) (err error) {
+	if s.err != nil {
+		return
+	}
+	s.err = fn(s.sqlRows)
 	return s.err
 }
 
 //AddSQL add one sql to SQLChain
-func (s *SQLChain) AddSQL(name string, sql string) {
-	s.sqlMap[name] = sql
+func (s *SQLChain) AddSQL(tag string, sql string, result interface{}) {
+	sqlRow := &SQLRow{
+		Tag:    tag,
+		SQL:    sql,
+		Result: result,
+	}
+	s.sqlRows = append(s.sqlRows, sqlRow)
 }
 
 func (s *SQLChain) SetError(err error) {
@@ -232,7 +256,7 @@ func (s *SQLChain) Error() (err error) {
 // 批量获取sql记录
 func NewSQLChain(sqlRepository func() *Repository) (s *SQLChain) {
 	s = &SQLChain{
-		sqlMap:        make(map[string]string),
+		sqlRows:       make([]*SQLRow, 0),
 		sqlRepository: sqlRepository,
 	}
 	return
