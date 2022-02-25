@@ -13,6 +13,7 @@ var TemplatefuncMap = template.FuncMap{
 	"currentTime":   CurrentTime,
 	"permanentTime": PermanentTime,
 	"contains":      strings.Contains,
+	"newPreComma":   NewPreComma,
 	"in":            In,
 }
 
@@ -35,6 +36,20 @@ func PermanentTime(dataVolume *map[string]interface{}) string {
 	placeholder := ":" + named
 	(*dataVolume)[named] = "3000-12-31 23:59:59"
 	return placeholder
+}
+
+type preComma struct {
+	comma string
+}
+
+func NewPreComma() *preComma {
+	return &preComma{}
+}
+
+func (c *preComma) PreComma() string {
+	out := c.comma
+	c.comma = ","
+	return out
 }
 
 func In(dataVolume *map[string]interface{}, key string) (str string, err error) {
