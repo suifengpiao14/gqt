@@ -6,8 +6,6 @@ import (
 	"strings"
 	"text/template"
 	"time"
-
-	"github.com/rs/xid"
 )
 
 var TemplatefuncMap = template.FuncMap{
@@ -56,14 +54,23 @@ func (c *preComma) PreComma() string {
 
 func In(dataVolume *map[string]interface{}, data interface{}) (str string, err error) {
 	placeholders := make([]string, 0)
-	key := xid.New().String()
+	inIndex := 0
+	inIndexInterface := (*dataVolume)["InIndex"]
+	if inIndexInterface != nil {
+		inIndexInt, ok := inIndexInterface.(int)
+		if ok {
+			inIndex = inIndexInt
+		}
+	}
+
 	v := reflect.Indirect(reflect.ValueOf(data))
 
 	switch v.Kind() {
 	case reflect.Array, reflect.Slice:
 		num := v.Len()
 		for i := 0; i < num; i++ {
-			named := fmt.Sprintf("%s_%d", key, i)
+			inIndex++
+			named := fmt.Sprintf("in_%d", inIndex)
 			placeholder := ":" + named
 			placeholders = append(placeholders, placeholder)
 			(*dataVolume)[named] = v.Index(i).Interface()
@@ -73,7 +80,8 @@ func In(dataVolume *map[string]interface{}, data interface{}) (str string, err e
 		arr := strings.Split(v.String(), ",")
 		num := len(arr)
 		for i := 0; i < num; i++ {
-			named := fmt.Sprintf("%s_%d", key, i)
+			inIndex++
+			named := fmt.Sprintf("in_%d", inIndex)
 			placeholder := ":" + named
 			placeholders = append(placeholders, placeholder)
 			(*dataVolume)[named] = arr[i]

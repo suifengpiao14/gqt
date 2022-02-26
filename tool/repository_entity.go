@@ -66,7 +66,8 @@ func parsePrefixVariable(item []byte, variableStart byte) (variable string, pos 
 	variableBegin := false
 	pos = 0
 	variableNameByte := make([]byte, 0)
-	for j := 0; j < len(item); j++ {
+	itemLen := len(item)
+	for j := 0; j < itemLen; j++ {
 		c := item[j]
 		if c == variableStart {
 			if j == 0 {
@@ -74,7 +75,7 @@ func parsePrefixVariable(item []byte, variableStart byte) (variable string, pos 
 				pos = j
 				continue
 			}
-			if !IsNameChar(item[j-1]) {
+			if !IsNameChar(item[j-1]) && j+1 < itemLen && IsNameChar(item[j+1]) {
 				variableBegin = true
 				pos = j
 				continue
@@ -83,10 +84,8 @@ func parsePrefixVariable(item []byte, variableStart byte) (variable string, pos 
 		if variableBegin {
 			if IsNameChar(c) {
 				variableNameByte = append(variableNameByte, c)
-			} else if len(variableNameByte) > 0 {
-				break
 			} else {
-				variableBegin = false
+				break
 			}
 		}
 	}
