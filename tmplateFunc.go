@@ -6,6 +6,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/rs/xid"
 )
 
 var TemplatefuncMap = template.FuncMap{
@@ -52,13 +54,9 @@ func (c *preComma) PreComma() string {
 	return out
 }
 
-func In(dataVolume *map[string]interface{}, key string) (str string, err error) {
+func In(dataVolume *map[string]interface{}, data interface{}) (str string, err error) {
 	placeholders := make([]string, 0)
-	data, ok := (*dataVolume)[key]
-	if !ok {
-		err = fmt.Errorf("not found %s in %#v", key, dataVolume)
-		return "", err
-	}
+	key := xid.New().String()
 	v := reflect.Indirect(reflect.ValueOf(data))
 
 	switch v.Kind() {
