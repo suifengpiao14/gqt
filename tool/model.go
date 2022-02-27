@@ -103,8 +103,8 @@ type Table struct {
 	Columns         []*Column
 }
 
-func GenerateTableStruct(tableList []*Table) (tableStructList []string, err error) {
-	tableStructList = make([]string, 0)
+func GenerateModel(tableList []*Table) (modelMap map[string]string, err error) {
+	modelMap = make(map[string]string)
 	tableTpl := structTpl()
 	tl, err := template.New("").Parse(tableTpl)
 	if err != nil {
@@ -118,7 +118,7 @@ func GenerateTableStruct(tableList []*Table) (tableStructList []string, err erro
 		if err != nil {
 			return
 		}
-		tableStructList = append(tableStructList, buf.String())
+		modelMap[table.TableNameCamel] = buf.String()
 	}
 	return
 }

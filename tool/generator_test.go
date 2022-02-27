@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/suifengpiao14/gqt/v2"
@@ -12,8 +13,9 @@ func TestGenerateModel(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	err = GenerateModel(repo)
+	tableModelList, err := GenerateTableModel(repo)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(tableModelList)
 }

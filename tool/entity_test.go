@@ -24,6 +24,21 @@ func TestParsSqlTplVariable(t *testing.T) {
 	fmt.Println(veriableList)
 }
 
+func TestRepositoryEntity(t *testing.T) {
+	ddlSqlTpl := ddlSqlTplData()
+	ddlList := []string{ddlSqlTpl.DDL}
+	tableList, err := GenerateTable(ddlList)
+	if err != nil {
+		panic(err)
+	}
+	table := tableList[0]
+	entityStruct, err := RepositoryEntity(table, ddlSqlTpl.SQLTpl)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(entityStruct)
+}
+
 type DDLSqlTpl struct {
 	DDL    string
 	SQLTpl string
