@@ -14,8 +14,8 @@ func FileName2Namespace(filename string, dir string, suffix string) (namespace s
 	namespace = strings.TrimSuffix(filename, suffix)
 	namespace = strings.ReplaceAll(namespace, "\\", ".")
 	namespace = strings.ReplaceAll(namespace, "/", ".")
-	namespace = strings.Trim(namespace, ".")
 	namespace = strings.TrimPrefix(namespace, prefix)
+	namespace = strings.Trim(namespace, ".")
 	return
 }
 
