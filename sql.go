@@ -32,11 +32,11 @@ func NewRepository() *Repository {
 	}
 }
 
-var suffix = ".sql.tpl"
+var Suffix = ".sql.tpl"
 
 func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error) {
 	// List the directories
-	pattern := fmt.Sprintf("%s/*%s", strings.TrimRight(root, "/"), suffix)
+	pattern := fmt.Sprintf("%s/*%s", strings.TrimRight(root, "/"), Suffix)
 	allFileList, err := filepath.Glob(pattern)
 	if err != nil {
 		err = errors.WithStack(err)

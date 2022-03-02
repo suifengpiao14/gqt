@@ -9,7 +9,7 @@ import (
 )
 
 func FileName2Namespace(filename string) (namespace string) {
-	namespace = strings.TrimSuffix(filename, suffix)
+	namespace = strings.TrimSuffix(filename, Suffix)
 	namespace = strings.ReplaceAll(namespace, "\\", ".")
 	namespace = strings.ReplaceAll(namespace, "/", ".")
 	namespace = strings.Trim(namespace, ".")
