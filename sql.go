@@ -43,9 +43,8 @@ func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error)
 		return
 	}
 	for _, filename := range allFileList {
-		absuluteName := strings.ReplaceAll(filename, "\\", "/") // window transport
-		relativeName := strings.TrimPrefix(absuluteName, root)
-		namespace := FileName2Namespace(relativeName)
+
+		namespace := FileName2Namespace(filename, root, Suffix)
 		t, err := template.New(namespace).Funcs(funcMap).ParseFiles(filename)
 		if err != nil {
 			return errors.WithStack(err)

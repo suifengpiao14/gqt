@@ -8,11 +8,14 @@ import (
 	"strings"
 )
 
-func FileName2Namespace(filename string) (namespace string) {
-	namespace = strings.TrimSuffix(filename, Suffix)
+func FileName2Namespace(filename string, dir string, suffix string) (namespace string) {
+	prefix := strings.ReplaceAll(dir, "\\", ".")
+	prefix = strings.ReplaceAll(prefix, "/", ".")
+	namespace = strings.TrimSuffix(filename, suffix)
 	namespace = strings.ReplaceAll(namespace, "\\", ".")
 	namespace = strings.ReplaceAll(namespace, "/", ".")
 	namespace = strings.Trim(namespace, ".")
+	namespace = strings.TrimPrefix(namespace, prefix)
 	return
 }
 
