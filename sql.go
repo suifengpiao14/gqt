@@ -128,6 +128,15 @@ func (r *Repository) GetStatement(name string, data interface{}) (sqlStatement s
 	return
 }
 
+type TplEntity interface {
+	TplName() string
+	TplInput() struct{}
+}
+
+func GetSQLByTplEntity(t TplEntity) (sqlStr string, err error) {
+	return GetSQL(t.TplName(), t.TplInput())
+}
+
 //无sql注入的安全方式
 func (r *Repository) GetSQL(name string, data interface{}) (sqlStr string, err error) {
 	sqlStatement, vars, err := r.GetStatement(name, data)
