@@ -130,7 +130,7 @@ func (r *Repository) GetStatement(name string, data interface{}) (sqlStatement s
 
 type TplEntity interface {
 	TplName() string
-	TplInput() struct{}
+	TplInput() interface{}
 }
 
 func GetSQLByTplEntity(t TplEntity) (sqlStr string, err error) {
