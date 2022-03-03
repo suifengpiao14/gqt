@@ -130,11 +130,11 @@ func (r *Repository) GetStatement(name string, data interface{}) (sqlStatement s
 
 type TplEntity interface {
 	TplName() string
-	TplInput() interface{}
 }
 
+// 将模板名称，模板中的变量，封装到结构体中，使用结构体访问，避免拼写错误以及分散的硬编码，可以配合 gqttool 自动生成响应的结构体
 func GetSQLByTplEntity(t TplEntity) (sqlStr string, err error) {
-	return GetSQL(t.TplName(), t.TplInput())
+	return GetSQL(t.TplName(), t)
 }
 
 //无sql注入的安全方式
