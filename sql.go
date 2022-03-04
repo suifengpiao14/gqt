@@ -3,7 +3,6 @@ package gqt
 import (
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"text/template"
@@ -36,8 +35,7 @@ var Suffix = ".sql.tpl"
 
 func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error) {
 	// List the directories
-	pattern := fmt.Sprintf("%s/*%s", strings.TrimRight(root, "/"), Suffix)
-	allFileList, err := filepath.Glob(pattern)
+	allFileList, err := GetTplFilesByDir(root)
 	if err != nil {
 		err = errors.WithStack(err)
 		return

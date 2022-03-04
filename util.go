@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -23,6 +24,22 @@ func GetMD5LOWER(s string) string {
 	h := md5.New()
 	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// GetTplFilesByDir get current and reverse dir tpl file
+func GetTplFilesByDir(dir string) (allFileList []string, err error) {
+	pattern := fmt.Sprintf("%s/*%s", strings.TrimRight(dir, "/"), Suffix)
+	allFileList, err = filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
+	}
+	pattern = fmt.Sprintf("%s/**/*%s", strings.TrimRight(dir, "/"), Suffix)
+	subDirFileList, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
+	}
+	allFileList = append(allFileList, subDirFileList...)
+	return
 }
 
 // ReadEmbedFS read embed file
