@@ -131,8 +131,14 @@ type TplEntity interface {
 }
 
 // 将模板名称，模板中的变量，封装到结构体中，使用结构体访问，避免拼写错误以及分散的硬编码，可以配合 gqttool 自动生成响应的结构体
-func GetSQLByTplEntity(t TplEntity) (sqlStr string, err error) {
+func (r *Repository) GetSQLByTplEntity(t TplEntity) (sqlStr string, err error) {
 	return GetSQL(t.TplName(), t)
+}
+
+// GetSQLByTplEntityRef 支持只返回error 函数签名
+func (r *Repository) GetSQLByTplEntityRef(t TplEntity, sqlStr *string) (err error) {
+	(*sqlStr), err = GetSQL(t.TplName(), t)
+	return
 }
 
 //无sql注入的安全方式
