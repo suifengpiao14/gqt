@@ -231,7 +231,7 @@ func (s *SQLChain) SQLRows() (sqlRowList []*SQLRow, err error) {
 //Exec exec sql
 func (s *SQLChain) Exec(fn func(sqlRowList []*SQLRow) (e error)) (err error) {
 	if s.err != nil {
-		return
+		return s.err
 	}
 	s.err = fn(s.sqlRows)
 	return s.err
