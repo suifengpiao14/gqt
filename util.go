@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/jinzhu/copier"
 )
 
 func FileName2Namespace(filename string, dir string, suffix string) (namespace string) {
@@ -78,5 +80,13 @@ func ReadEmbedFS(repositoryFS embed.FS, filename string, fileMap *map[string][]b
 			(*fileMap)[subFilename] = b
 		}
 		return
+	}
+}
+
+// Model2Entity copy model to entity ,some times input used to insert and update ,in this case input mybe model, copy model value to insertEntity and updateEntity
+func Model2TplEntity(from interface{}, to TplEntity) {
+	err := copier.Copy(to, from)
+	if err != nil {
+		panic(err)
 	}
 }
