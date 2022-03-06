@@ -46,6 +46,6 @@ func TestModel2Entity(t *testing.T) {
 		CreatedAt: "2022-03-06",
 	}
 	to := &ExampleEntity{}
-	Model2Entity(from, to)
+	Model2TplEntity(from, to)
 	fmt.Println(to)
 }
