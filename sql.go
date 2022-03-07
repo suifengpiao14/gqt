@@ -14,9 +14,15 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+type RepositoryConfig struct {
+	TablePrefix  string
+	ColumnPrefix string
+}
+
 // Repository stores SQL templates.
 type Repository struct {
 	templates map[string]*template.Template // namespace: template
+	config    *RepositoryConfig
 }
 
 type DataVolume struct {
@@ -28,10 +34,19 @@ type DataVolume struct {
 func NewRepository() *Repository {
 	return &Repository{
 		templates: make(map[string]*template.Template),
+		config:    &RepositoryConfig{},
 	}
 }
 
 var Suffix = ".sql.tpl"
+
+func (r *Repository) SetConfig(c *RepositoryConfig) {
+	r.config = c
+}
+
+func (r *Repository) GetConfig() *RepositoryConfig {
+	return r.config
+}
 
 func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error) {
 	// List the directories
