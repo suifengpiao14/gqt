@@ -2,6 +2,7 @@ package gqt
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -40,13 +41,8 @@ func NewRepository() *Repository {
 
 var Suffix = ".sql.tpl"
 
-func (r *Repository) SetConfig(c *RepositoryConfig) {
-	r.config = c
-}
-
-func (r *Repository) GetConfig() *RepositoryConfig {
-	return r.config
-}
+// ddl namespace sufix . define name prefix
+var DDLNamespaceSuffix = "ddl"
 
 func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error) {
 	// List the directories
@@ -99,7 +95,7 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap 
 			return
 		}
 		fullName := fmt.Sprintf("%s.%s", namespace, name)
-		content := strings.Trim(b.String(), "\r\n")
+		content := strings.Trim(b.String(), "\r\n\t ")
 		if len(content) == 0 {
 			continue
 		}
@@ -111,6 +107,60 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap 
 		}
 		sqlStr := r.Statement2SQL(sqlStatement, vars)
 		sqlMap[fullName] = sqlStr
+	}
+	return
+}
+
+func (r *Repository) getDDLNamespace() (ddlNamespace string, err error) {
+	for namespace := range r.templates {
+		if strings.HasSuffix(namespace, DDLNamespaceSuffix) {
+			ddlNamespace = namespace
+			break
+		}
+	}
+	if ddlNamespace == "" {
+		err = errors.Errorf("not find ddl namespace with sufix %s,you can set gqt.DDLNamespaceSuffix to change sufix", DDLNamespaceSuffix)
+		return
+	}
+	return
+}
+
+func (r *Repository) GetDDLSQL() (ddlMap map[string]string, err error) {
+	ddlMap = make(map[string]string)
+	ddlNamespace, err := r.getDDLNamespace()
+	if err != nil {
+		return
+	}
+	sqlMap, err := r.GetByNamespace(ddlNamespace, nil)
+	if err != nil {
+		return
+	}
+	for fullname, ddl := range sqlMap {
+		createStr := ddl[:6]
+		if strings.ToLower(createStr) == "create" {
+			ddlMap[fullname] = ddl
+		}
+	}
+	return
+}
+
+func (r *Repository) GetConfig() (config *RepositoryConfig, err error) {
+	ddlNamespace, err := r.getDDLNamespace()
+	if err != nil {
+		return
+	}
+	fullname := fmt.Sprintf("%s.%s", ddlNamespace, "config")
+	jsonstr, err := r.Parse(fullname, nil)
+	if err != nil {
+		return
+	}
+	if jsonstr == "" {
+		return
+	}
+
+	err = json.Unmarshal([]byte(jsonstr), config)
+	if err != nil {
+		return
 	}
 	return
 }
@@ -363,4 +413,14 @@ func GetSQL(name string, data interface{}) (sql string, e error) {
 // Parse method for the default repository.
 func Parse(name string, data interface{}) (string, error) {
 	return defaultRepository.Parse(name, data)
+}
+
+// GetDDLSQL method for the default repository.
+func GetDDLSQL(name string, data interface{}) (ddlMap map[string]string, err error) {
+	return defaultRepository.GetDDLSQL()
+}
+
+// GetConfig method for the default repository.
+func GetConfig(name string, data interface{}) (config *RepositoryConfig, err error) {
+	return defaultRepository.GetConfig()
 }

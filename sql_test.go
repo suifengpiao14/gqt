@@ -81,3 +81,7 @@ func TestSQLNamed(t *testing.T) {
 	fmt.Println(vars)
 	fmt.Println(sqlStatement)
 }
+
+func TestGetDDLSQL(t *testing.T) {
+	AddByDir("example", TemplatefuncMap)
+}
