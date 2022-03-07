@@ -83,5 +83,30 @@ func TestSQLNamed(t *testing.T) {
 }
 
 func TestGetDDLSQL(t *testing.T) {
-	AddByDir("example", TemplatefuncMap)
+	rpo := NewRepository()
+
+	err := rpo.AddByDir("example", TemplatefuncMap)
+	if err != nil {
+		panic(err)
+	}
+	ddlMap, err := rpo.GetDDLSQL()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(ddlMap)
+}
+
+func TestGetConfig(t *testing.T) {
+	rpo := NewRepository()
+
+	err := rpo.AddByDir("example", TemplatefuncMap)
+	if err != nil {
+		panic(err)
+	}
+	cfg, err := rpo.GetConfig()
+	if err != nil {
+		panic(err)
+	}
+	str := fmt.Sprintf("%#v", cfg)
+	fmt.Println(str)
 }

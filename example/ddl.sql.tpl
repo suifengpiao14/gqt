@@ -1,7 +1,11 @@
-
+{{define "config"}}
+{{/* toml grammar config content */}}
+tablePrefix="t_"
+columnPrefix="F"
+{{end}}
 
 {{define "ddlService"}}
-   CREATE TABLE if not exists `service` (
+   CREATE TABLE if not exists `t_service` (
   `service_id` varchar(64) NOT NULL DEFAULT '' COMMENT '服务标识',
   `title` varchar(255) NOT NULL DEFAULT '' COMMENT '标题',
   `description` varchar(255) NOT NULL DEFAULT '' COMMENT '介绍',
@@ -20,7 +24,7 @@
 
 
 {{define "ddlApi"}}
-  CREATE TABLE  if not exists `api` (
+  CREATE TABLE  if not exists `t_api` (
   `api_id` varchar(64) NOT NULL DEFAULT '' COMMENT 'api 文档标识',
   `service_id` varchar(64) NOT NULL DEFAULT '' COMMENT '服务标识',
   `name` varchar(255) NOT NULL COMMENT '路由名称(英文)',
@@ -40,7 +44,7 @@
 
 
 {{define "ddlParameter"}}
-  CREATE TABLE  if not exists `parameter`  (
+  CREATE TABLE  if not exists `t_parameter`  (
   `parameter_id` varchar(64) NOT NULL DEFAULT '' COMMENT '参数标识',
   `service_id` varchar(64) NOT NULL DEFAULT '' COMMENT '服务标识',
   `api_id` varchar(64) NOT NULL DEFAULT '' COMMENT 'api 文档标识',

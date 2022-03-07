@@ -49,3 +49,12 @@ func TestModel2Entity(t *testing.T) {
 	Model2TplEntity(from, to)
 	fmt.Println(to)
 }
+
+func TestStandardizeSpaces(t *testing.T) {
+	s := `
+	a     b 
+	c	d
+	`
+	ns := StandardizeSpaces(s)
+	fmt.Println(ns)
+}

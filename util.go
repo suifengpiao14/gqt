@@ -90,3 +90,6 @@ func Model2TplEntity(from interface{}, to TplEntity) {
 		panic(err)
 	}
 }
+func StandardizeSpaces(s string) string {
+	return strings.Join(strings.Fields(s), " ")
+}

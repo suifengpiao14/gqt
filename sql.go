@@ -2,12 +2,12 @@ package gqt
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 	"text/template"
 
+	"github.com/BurntSushi/toml"
 	"github.com/jmoiron/sqlx"
 	"gorm.io/gorm/logger"
 
@@ -16,8 +16,8 @@ import (
 )
 
 type RepositoryConfig struct {
-	TablePrefix  string
-	ColumnPrefix string
+	TablePrefix  string `toml:"tablePrefix"`
+	ColumnPrefix string `toml:"columnPrefix"`
 }
 
 // Repository stores SQL templates.
@@ -95,11 +95,12 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap 
 			return
 		}
 		fullName := fmt.Sprintf("%s.%s", namespace, name)
-		content := strings.Trim(b.String(), "\r\n\t ")
-		if len(content) == 0 {
+		// replacer := strings.NewReplacer("\r", "", "\n", "", "\t", "", "  ", "")
+		// sqlNamed := replacer.Replace(b.String())
+		sqlNamed := StandardizeSpaces(b.String())
+		if sqlNamed == "" {
 			continue
 		}
-		sqlNamed := b.String()
 		sqlStatement, vars, err := sqlx.Named(sqlNamed, mapData)
 		if err != nil {
 			err = errors.WithStack(err)
@@ -150,15 +151,15 @@ func (r *Repository) GetConfig() (config *RepositoryConfig, err error) {
 		return
 	}
 	fullname := fmt.Sprintf("%s.%s", ddlNamespace, "config")
-	jsonstr, err := r.Parse(fullname, nil)
+	tomlStr, err := r.Parse(fullname, nil)
 	if err != nil {
 		return
 	}
-	if jsonstr == "" {
+	if tomlStr == "" {
 		return
 	}
-
-	err = json.Unmarshal([]byte(jsonstr), config)
+	config = &RepositoryConfig{}
+	_, err = toml.Decode(tomlStr, config)
 	if err != nil {
 		return
 	}
