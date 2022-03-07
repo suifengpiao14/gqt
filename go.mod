@@ -3,7 +3,7 @@ module github.com/suifengpiao14/gqt/v2
 go 1.16
 
 require (
-	github.com/BurntSushi/toml v1.0.0 // indirect
+	github.com/BurntSushi/toml v1.0.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/pkg/errors v0.9.1
