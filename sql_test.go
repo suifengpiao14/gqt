@@ -44,7 +44,7 @@ func TestStruct(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf(sql)
+	fmt.Println(sql)
 
 }
 
@@ -63,7 +63,7 @@ func TestMap(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf(sql)
+	fmt.Println(sql)
 
 }
 
