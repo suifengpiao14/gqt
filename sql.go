@@ -146,7 +146,7 @@ func (r *Repository) GetDDLSQL() (ddlMap map[string]string, err error) {
 	return
 }
 
-func (r *Repository) GetConfig() (config *TableConfig, err error) {
+func (r *Repository) GetTableConfig() (config *TableConfig, err error) {
 	ddlNamespace, err := r.getDDLNamespace()
 	if err != nil {
 		return
@@ -384,45 +384,4 @@ func interface2map(data interface{}) (out map[string]interface{}, err error) {
 		err = errors.Errorf("not support type %#v", data)
 	}
 	return
-}
-
-var defaultRepository = NewRepository()
-
-// AddByDir method for the default repository.
-func AddByDir(dir string, funcMap template.FuncMap) error {
-	return defaultRepository.AddByDir(dir, funcMap)
-}
-
-// AddByNamespace method for the default repository.
-func AddByNamespace(filename string, content string, funcMap template.FuncMap) error {
-	return defaultRepository.AddByNamespace(filename, content, funcMap)
-}
-
-func GetByNamespace(namespace string, data interface{}) (sqlMap map[string]string, err error) {
-	return defaultRepository.GetByNamespace(namespace, data)
-}
-
-// Get method for the default repository.
-func GetStatement(name string, data interface{}) (sql string, vars interface{}, err error) {
-	return defaultRepository.GetStatement(name, data)
-}
-
-// Exec method for the default repository.
-func GetSQL(name string, data interface{}) (sql string, e error) {
-	return defaultRepository.GetSQL(name, data)
-}
-
-// Parse method for the default repository.
-func Parse(name string, data interface{}) (string, error) {
-	return defaultRepository.Parse(name, data)
-}
-
-// GetDDLSQL method for the default repository.
-func GetDDLSQL(name string, data interface{}) (ddlMap map[string]string, err error) {
-	return defaultRepository.GetDDLSQL()
-}
-
-// GetConfig method for the default repository.
-func GetConfig(name string, data interface{}) (config *TableConfig, err error) {
-	return defaultRepository.GetConfig()
 }

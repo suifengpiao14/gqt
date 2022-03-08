@@ -14,6 +14,7 @@ import (
 )
 
 var testDir string
+var repo *Repository
 
 func init() {
 	var err error
@@ -22,11 +23,13 @@ func init() {
 		panic(err)
 	}
 	testDir = filepath.Join(testDir, "../test")
+	repo = NewRepository()
 }
 
 func TestStruct(t *testing.T) {
+
 	for _, dir := range []string{"pkg1", "pkg2"} {
-		err := AddByDir(filepath.Join(testDir, dir), TemplatefuncMap)
+		err := repo.AddByDir(filepath.Join(testDir, dir), TemplatefuncMap)
 		if err != nil {
 			panic(err)
 		}
@@ -40,7 +43,7 @@ func TestStruct(t *testing.T) {
 		APIID: 1,
 		Ids:   "1,2,3,4,5,6",
 	}
-	sql, err := GetSQL("parameter.getAllByAPIID", data)
+	sql, err := repo.GetSQL("parameter.getAllByAPIID", data)
 	if err != nil {
 		panic(err)
 	}
@@ -50,7 +53,7 @@ func TestStruct(t *testing.T) {
 
 func TestMap(t *testing.T) {
 	for _, dir := range []string{"pkg1", "pkg2"} {
-		err := AddByDir(filepath.Join(testDir, dir), TemplatefuncMap)
+		err := repo.AddByDir(filepath.Join(testDir, dir), TemplatefuncMap)
 		if err != nil {
 			panic(err)
 		}
@@ -59,7 +62,7 @@ func TestMap(t *testing.T) {
 	data := make(map[string]interface{})
 	data["APIID"] = 1
 	data["Ids"] = "1,2,4"
-	sql, err := GetSQL("parameter.getAllByAPIID", data)
+	sql, err := repo.GetSQL("parameter.getAllByAPIID", data)
 	if err != nil {
 		panic(err)
 	}
@@ -103,7 +106,7 @@ func TestGetConfig(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	cfg, err := rpo.GetConfig()
+	cfg, err := rpo.GetTableConfig()
 	if err != nil {
 		panic(err)
 	}
