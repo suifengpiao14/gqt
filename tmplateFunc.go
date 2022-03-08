@@ -6,6 +6,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"goa.design/goa/v3/codegen"
 )
 
 var TemplatefuncMap = template.FuncMap{
@@ -15,6 +17,9 @@ var TemplatefuncMap = template.FuncMap{
 	"contains":      strings.Contains,
 	"newPreComma":   NewPreComma,
 	"in":            In,
+	"toCamel":       ToCamel,
+	"toLowerCamel":  ToLowerCamel,
+	"snakeCase":     SnakeCase,
 }
 
 func ZeroTime(dataVolume *map[string]interface{}) string {
@@ -96,4 +101,17 @@ func In(dataVolume *map[string]interface{}, data interface{}) (str string, err e
 	str = strings.Join(placeholders, ",")
 	return str, nil
 
+}
+
+// 封装 goa.design/goa/v3/codegen 方便后续可定制
+func ToCamel(name string) string {
+	return codegen.CamelCase(name, true, true)
+}
+
+func ToLowerCamel(name string) string {
+	return codegen.CamelCase(name, false, true)
+}
+
+func SnakeCase(name string) string {
+	return codegen.SnakeCase(name)
 }

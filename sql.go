@@ -68,13 +68,16 @@ func (r *Repository) AddByNamespace(namespace string, content string, funcMap te
 }
 
 // GetByNamespace get all template under namespace
-func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap map[string]string, err error) {
+func (r *Repository) GetByNamespace(namespace string, data interface{}, convertData2map bool) (sqlMap map[string]string, err error) {
 	t, ok := r.templates[namespace]
 	if !ok {
 		err = errors.Errorf("not found namespace:%s", namespace)
 		return
 	}
-	mapData, err := interface2map(data)
+	if convertData2map {
+		data, err = interface2map(data)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +86,7 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap 
 	for _, tpl := range templates {
 		name := tpl.Name()
 		var b bytes.Buffer
-		err = tpl.Execute(&b, &mapData)
+		err = tpl.Execute(&b, &data)
 		if err != nil {
 			err = errors.WithStack(err)
 			return
@@ -95,7 +98,7 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap 
 		if sqlNamed == "" {
 			continue
 		}
-		sqlStatement, vars, err := sqlx.Named(sqlNamed, mapData)
+		sqlStatement, vars, err := sqlx.Named(sqlNamed, data)
 		if err != nil {
 			err = errors.WithStack(err)
 			return nil, err
@@ -126,7 +129,7 @@ func (r *Repository) GetDDLSQL() (ddlMap map[string]string, err error) {
 	if err != nil {
 		return
 	}
-	sqlMap, err := r.GetByNamespace(ddlNamespace, nil)
+	sqlMap, err := r.GetByNamespace(ddlNamespace, nil, true)
 	if err != nil {
 		return
 	}
@@ -139,13 +142,13 @@ func (r *Repository) GetDDLSQL() (ddlMap map[string]string, err error) {
 	return
 }
 
-func (r *Repository) GetMetaTpl() (metaTplMap map[string]string, err error) {
+func (r *Repository) GetMetaTpl(data interface{}) (metaTplMap map[string]string, err error) {
 	metaTplMap = make(map[string]string)
 	ddlNamespace, err := r.GetDDLNamespace()
 	if err != nil {
 		return
 	}
-	tplMap, err := r.GetByNamespace(ddlNamespace, nil)
+	tplMap, err := r.GetByNamespace(ddlNamespace, data, false)
 	if err != nil {
 		return
 	}

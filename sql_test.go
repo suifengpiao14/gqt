@@ -98,6 +98,15 @@ func TestGetDDLSQL(t *testing.T) {
 	}
 	fmt.Println(ddlMap)
 }
+
+type ModelStruct struct {
+	TableName  string
+	PrimaryKey string
+}
+
+func (s *ModelStruct) PrimaryKeyCamel() string {
+	return "ID"
+}
 func TestGetMetaTpl(t *testing.T) {
 	rpo := NewRepository()
 
@@ -105,7 +114,12 @@ func TestGetMetaTpl(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	ddlMap, err := rpo.GetMetaTpl()
+
+	data := &ModelStruct{
+		TableName:  "user",
+		PrimaryKey: "id",
+	}
+	ddlMap, err := rpo.GetMetaTpl(data)
 	if err != nil {
 		panic(err)
 	}
