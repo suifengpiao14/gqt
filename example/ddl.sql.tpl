@@ -4,6 +4,11 @@ tablePrefix="t_"
 columnPrefix="F"
 {{end}}
 
+{{define "tplDel"}}
+update `{{.TableName}}` set `deleted_at`={{`{{currentTime}}}`}},`operator_id`=::OperatorID,`operator`=::Operator where `{{.PrimaryKey}}`=::{{.PrimaryKeyCamel}};
+{{end}}
+
+
 {{define "ddlService"}}
    CREATE TABLE if not exists `t_service` (
   `service_id` varchar(64) NOT NULL DEFAULT '' COMMENT '服务标识',

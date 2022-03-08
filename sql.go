@@ -137,6 +137,26 @@ func (r *Repository) GetDDLSQL() (ddlMap map[string]string, err error) {
 	return
 }
 
+func (r *Repository) GetMetaTpl() (metaTplMap map[string]string, err error) {
+	metaTplMap = make(map[string]string)
+	ddlNamespace, err := r.GetDDLNamespace()
+	if err != nil {
+		return
+	}
+	tplMap, err := r.GetByNamespace(ddlNamespace, nil)
+	if err != nil {
+		return
+	}
+	for fullname, tpl := range tplMap {
+		lastDot := strings.LastIndex(fullname, ".")
+		name := fullname[lastDot+1:]
+		if name[:3] == "tpl" {
+			metaTplMap[fullname] = tpl
+		}
+	}
+	return
+}
+
 // 支持返回Prepared Statement ,该模式优势1. 提升性能，避免重复解析 SQL 带来的开销，2. 避免 SQL 注入 缺点： 1. 存在两次与数据库的通信，在密集进行 SQL 查询的情况下，可能会出现 I/O 瓶颈
 func (r *Repository) GetStatement(name string, data interface{}) (sqlStatement string, vars []interface{}, err error) {
 	if name == "" {

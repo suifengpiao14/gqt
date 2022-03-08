@@ -98,3 +98,16 @@ func TestGetDDLSQL(t *testing.T) {
 	}
 	fmt.Println(ddlMap)
 }
+func TestGetMetaTpl(t *testing.T) {
+	rpo := NewRepository()
+
+	err := rpo.AddByDir("example", TemplatefuncMap)
+	if err != nil {
+		panic(err)
+	}
+	ddlMap, err := rpo.GetMetaTpl()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%#v", ddlMap)
+}
