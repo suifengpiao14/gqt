@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-type TableConfig struct {
+type Config struct {
 	TablePrefix     string `toml:"tablePrefix"`
 	ColumnPrefix    string `toml:"columnPrefix"`
 	DeletedAtColumn string `toml:"deletedAtColumn"`
@@ -24,7 +24,7 @@ type TableConfig struct {
 // Repository stores SQL templates.
 type Repository struct {
 	templates map[string]*template.Template // namespace: template
-	config    *TableConfig
+	config    *Config
 }
 
 type DataVolume struct {
@@ -36,7 +36,7 @@ type DataVolume struct {
 func NewRepository() *Repository {
 	return &Repository{
 		templates: make(map[string]*template.Template),
-		config:    &TableConfig{},
+		config:    &Config{},
 	}
 }
 
@@ -146,7 +146,7 @@ func (r *Repository) GetDDLSQL() (ddlMap map[string]string, err error) {
 	return
 }
 
-func (r *Repository) GetTableConfig() (config *TableConfig, err error) {
+func (r *Repository) GetConfig() (config *Config, err error) {
 	ddlNamespace, err := r.getDDLNamespace()
 	if err != nil {
 		return
@@ -159,7 +159,7 @@ func (r *Repository) GetTableConfig() (config *TableConfig, err error) {
 	if tomlStr == "" {
 		return
 	}
-	config = &TableConfig{}
+	config = &Config{}
 	_, err = toml.Decode(tomlStr, config)
 	if err != nil {
 		return

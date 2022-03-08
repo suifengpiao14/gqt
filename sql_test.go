@@ -106,7 +106,7 @@ func TestGetConfig(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	cfg, err := rpo.GetTableConfig()
+	cfg, err := rpo.GetConfig()
 	if err != nil {
 		panic(err)
 	}
