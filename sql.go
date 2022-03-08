@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-type RepositoryConfig struct {
+type TableConfig struct {
 	TablePrefix     string `toml:"tablePrefix"`
 	ColumnPrefix    string `toml:"columnPrefix"`
 	DeletedAtColumn string `toml:"deletedAtColumn"`
@@ -24,7 +24,7 @@ type RepositoryConfig struct {
 // Repository stores SQL templates.
 type Repository struct {
 	templates map[string]*template.Template // namespace: template
-	config    *RepositoryConfig
+	config    *TableConfig
 }
 
 type DataVolume struct {
@@ -36,7 +36,7 @@ type DataVolume struct {
 func NewRepository() *Repository {
 	return &Repository{
 		templates: make(map[string]*template.Template),
-		config:    &RepositoryConfig{},
+		config:    &TableConfig{},
 	}
 }
 
@@ -146,7 +146,7 @@ func (r *Repository) GetDDLSQL() (ddlMap map[string]string, err error) {
 	return
 }
 
-func (r *Repository) GetConfig() (config *RepositoryConfig, err error) {
+func (r *Repository) GetConfig() (config *TableConfig, err error) {
 	ddlNamespace, err := r.getDDLNamespace()
 	if err != nil {
 		return
@@ -159,7 +159,7 @@ func (r *Repository) GetConfig() (config *RepositoryConfig, err error) {
 	if tomlStr == "" {
 		return
 	}
-	config = &RepositoryConfig{}
+	config = &TableConfig{}
 	_, err = toml.Decode(tomlStr, config)
 	if err != nil {
 		return
@@ -423,6 +423,6 @@ func GetDDLSQL(name string, data interface{}) (ddlMap map[string]string, err err
 }
 
 // GetConfig method for the default repository.
-func GetConfig(name string, data interface{}) (config *RepositoryConfig, err error) {
+func GetConfig(name string, data interface{}) (config *TableConfig, err error) {
 	return defaultRepository.GetConfig()
 }
