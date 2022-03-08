@@ -7,7 +7,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/BurntSushi/toml"
 	"github.com/jmoiron/sqlx"
 	"gorm.io/gorm/logger"
 
@@ -15,16 +14,9 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-type Config struct {
-	TablePrefix     string `toml:"tablePrefix"`
-	ColumnPrefix    string `toml:"columnPrefix"`
-	DeletedAtColumn string `toml:"deletedAtColumn"`
-}
-
 // Repository stores SQL templates.
 type Repository struct {
 	templates map[string]*template.Template // namespace: template
-	config    *Config
 }
 
 type DataVolume struct {
@@ -36,7 +28,6 @@ type DataVolume struct {
 func NewRepository() *Repository {
 	return &Repository{
 		templates: make(map[string]*template.Template),
-		config:    &Config{},
 	}
 }
 
@@ -113,7 +104,7 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlMap 
 	return
 }
 
-func (r *Repository) getDDLNamespace() (ddlNamespace string, err error) {
+func (r *Repository) GetDDLNamespace() (ddlNamespace string, err error) {
 	for namespace := range r.templates {
 		if strings.HasSuffix(namespace, DDLNamespaceSuffix) {
 			ddlNamespace = namespace
@@ -129,7 +120,7 @@ func (r *Repository) getDDLNamespace() (ddlNamespace string, err error) {
 
 func (r *Repository) GetDDLSQL() (ddlMap map[string]string, err error) {
 	ddlMap = make(map[string]string)
-	ddlNamespace, err := r.getDDLNamespace()
+	ddlNamespace, err := r.GetDDLNamespace()
 	if err != nil {
 		return
 	}
@@ -142,27 +133,6 @@ func (r *Repository) GetDDLSQL() (ddlMap map[string]string, err error) {
 		if strings.ToLower(createStr) == "create" {
 			ddlMap[fullname] = ddl
 		}
-	}
-	return
-}
-
-func (r *Repository) GetConfig() (config *Config, err error) {
-	ddlNamespace, err := r.getDDLNamespace()
-	if err != nil {
-		return
-	}
-	fullname := fmt.Sprintf("%s.%s", ddlNamespace, "config")
-	tomlStr, err := r.Parse(fullname, nil)
-	if err != nil {
-		return
-	}
-	if tomlStr == "" {
-		return
-	}
-	config = &Config{}
-	_, err = toml.Decode(tomlStr, config)
-	if err != nil {
-		return
 	}
 	return
 }
@@ -283,6 +253,27 @@ func (s *SQLChain) ParseSQL(tplName string, args interface{}, result interface{}
 	}
 	sqlRow := &SQLRow{
 		Tag:    tplName,
+		SQL:    sql,
+		Result: result,
+	}
+	s.sqlRows = append(s.sqlRows, sqlRow)
+	return s
+}
+
+func (s *SQLChain) ParseTpEntity(entity TplEntity, result interface{}) *SQLChain {
+	if s.sqlRepository == nil {
+		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
+	}
+	if s.err != nil {
+		return s
+	}
+	sql, err := s.sqlRepository().GetSQLByTplEntity(entity)
+	if err != nil {
+		s.err = err
+		return s
+	}
+	sqlRow := &SQLRow{
+		Tag:    entity.TplName(),
 		SQL:    sql,
 		Result: result,
 	}

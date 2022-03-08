@@ -98,18 +98,3 @@ func TestGetDDLSQL(t *testing.T) {
 	}
 	fmt.Println(ddlMap)
 }
-
-func TestGetConfig(t *testing.T) {
-	rpo := NewRepository()
-
-	err := rpo.AddByDir("example", TemplatefuncMap)
-	if err != nil {
-		panic(err)
-	}
-	cfg, err := rpo.GetConfig()
-	if err != nil {
-		panic(err)
-	}
-	str := fmt.Sprintf("%#v", cfg)
-	fmt.Println(str)
-}
