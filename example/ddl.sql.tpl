@@ -4,7 +4,7 @@ tablePrefix="t_"
 columnPrefix="F"
 {{end}}
 
-{{define "tplDel"}}
+{{define "metaTplDel"}}
 update `{{.TableName}}` set `deleted_at`={{`{{currentTime}}}`}},`operator_id`=::OperatorID,`operator`=::Operator where `{{.PrimaryKey}}`=::{{.PrimaryKeyCamel}};
 {{end}}
 

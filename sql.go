@@ -33,6 +33,8 @@ func NewRepository() *Repository {
 
 var Suffix = ".sql.tpl"
 
+var MetaTplFlag = "metaTpl"
+
 // ddl namespace sufix . define name prefix
 var DDLNamespaceSuffix = "ddl"
 
@@ -147,10 +149,14 @@ func (r *Repository) GetMetaTpl() (metaTplMap map[string]string, err error) {
 	if err != nil {
 		return
 	}
+	metaTplFlagLen := len(MetaTplFlag)
 	for fullname, tpl := range tplMap {
 		lastDot := strings.LastIndex(fullname, ".")
 		name := fullname[lastDot+1:]
-		if name[:3] == "tpl" {
+		if len(name) < metaTplFlagLen {
+			continue
+		}
+		if name[:metaTplFlagLen] == MetaTplFlag {
 			metaTplMap[fullname] = tpl
 		}
 	}
