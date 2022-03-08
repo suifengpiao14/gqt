@@ -92,9 +92,7 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}, convertD
 			return
 		}
 		fullName := fmt.Sprintf("%s.%s", namespace, name)
-		// replacer := strings.NewReplacer("\r", "", "\n", "", "\t", "", "  ", "")
-		// sqlNamed := replacer.Replace(b.String())
-		sqlNamed := StandardizeSpaces(b.String())
+		sqlNamed := b.String() // GetByNamespace 保留原始字符串，metaTpl中需要显示换行
 		if sqlNamed == "" {
 			continue
 		}
