@@ -16,8 +16,9 @@ import (
 )
 
 type RepositoryConfig struct {
-	TablePrefix  string `toml:"tablePrefix"`
-	ColumnPrefix string `toml:"columnPrefix"`
+	TablePrefix     string `toml:"tablePrefix"`
+	ColumnPrefix    string `toml:"columnPrefix"`
+	DeletedAtColumn string `toml:"deletedAtColumn"`
 }
 
 // Repository stores SQL templates.
