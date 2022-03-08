@@ -2,13 +2,12 @@ package gqt
 
 import (
 	"bytes"
-	"fmt"
 	"reflect"
 	"strings"
 	"text/template"
 
 	"github.com/jmoiron/sqlx"
-	"gorm.io/gorm/logger"
+	"github.com/suifengpiao14/gqt/v2/pkg"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sync/singleflight"
@@ -31,34 +30,33 @@ func NewRepository() *Repository {
 	}
 }
 
-var Suffix = ".sql.tpl"
+var SQLSuffix = ".sql.tpl"
+var DDLSuffix = ".ddl.tpl"
 
 var MetaTplFlag = "metaTpl"
+var LeftDelim = "{{"
+var RightDelim = "}}"
 
 // ddl namespace sufix . define name prefix
 var DDLNamespaceSuffix = "ddl"
 
 func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error) {
-	// List the directories
-	allFileList, err := GetTplFilesByDir(root)
+	r.templates, err = pkg.AddTemplateByDir(root, SQLSuffix, funcMap, LeftDelim, RightDelim)
 	if err != nil {
-		err = errors.WithStack(err)
 		return
 	}
-	for _, filename := range allFileList {
-
-		namespace := FileName2Namespace(filename, root, Suffix)
-		t, err := template.New(namespace).Funcs(funcMap).ParseFiles(filename)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		r.templates[namespace] = t
+	ddlTemplates, err := pkg.AddTemplateByDir(root, DDLSuffix, funcMap, LeftDelim, RightDelim)
+	if err != nil {
+		return
+	}
+	for fullname, tpl := range ddlTemplates {
+		r.templates[fullname] = tpl
 	}
 	return
 }
 
 func (r *Repository) AddByNamespace(namespace string, content string, funcMap template.FuncMap) (err error) {
-	t, err := template.New(namespace).Funcs(funcMap).Parse(content)
+	t, err := pkg.AddTemplateByStr(namespace, content, funcMap, LeftDelim, RightDelim)
 	if err != nil {
 		err = errors.WithStack(err)
 		return err
@@ -67,42 +65,52 @@ func (r *Repository) AddByNamespace(namespace string, content string, funcMap te
 	return
 }
 
-// GetByNamespace get all template under namespace
-func (r *Repository) GetByNamespace(namespace string, data interface{}, convertData2map bool) (sqlMap map[string]string, err error) {
-	t, ok := r.templates[namespace]
-	if !ok {
-		err = errors.Errorf("not found namespace:%s", namespace)
-		return
-	}
-	if convertData2map {
-		data, err = interface2map(data)
+type SQLRow struct {
+	Name      string
+	Namespace string
+	SQL       string
+	Statment  string
+	Arguments []interface{}
+	Result    interface{}
+}
+
+func (r *Repository) DefineResult2SQLRow(defineResult pkg.DefineResult) (sqlRow *SQLRow, err error) {
+	sqlRow = &SQLRow{
+		Name:      defineResult.Name,
+		Namespace: defineResult.Namespace,
 	}
 
+	sqlNamed := pkg.StandardizeSpaces(defineResult.Output)
+	if sqlNamed == "" {
+		return
+	}
+	sqlRow.Statment, sqlRow.Arguments, err = sqlx.Named(sqlNamed, defineResult.Input)
+	if err != nil {
+		err = errors.WithStack(err)
+		return nil, err
+	}
+	sqlRow.SQL = pkg.Statement2SQL(sqlRow.Statment, sqlRow.Arguments)
+
+	return
+}
+
+// GetByNamespace get all template under namespace
+func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlRowList []*SQLRow, err error) {
+	data, err = interface2map(data)
 	if err != nil {
 		return nil, err
 	}
-	sqlMap = make(map[string]string, 0)
-	templates := t.Templates()
-	for _, tpl := range templates {
-		name := tpl.Name()
-		var b bytes.Buffer
-		err = tpl.Execute(&b, &data)
+	defineResultList, err := pkg.ExecuteNamespaceTemplate(r.templates, namespace, data)
+	if err != nil {
+		return nil, err
+	}
+	sqlRowList = make([]*SQLRow, 0)
+	for _, defineResult := range defineResultList {
+		sqlRow, err := r.DefineResult2SQLRow(*defineResult)
 		if err != nil {
-			err = errors.WithStack(err)
-			return
-		}
-		fullName := fmt.Sprintf("%s.%s", namespace, name)
-		sqlNamed := b.String() // GetByNamespace 保留原始字符串，metaTpl中需要显示换行
-		if sqlNamed == "" {
-			continue
-		}
-		sqlStatement, vars, err := sqlx.Named(sqlNamed, data)
-		if err != nil {
-			err = errors.WithStack(err)
 			return nil, err
 		}
-		sqlStr := r.Statement2SQL(sqlStatement, vars)
-		sqlMap[fullName] = sqlStr
+		sqlRowList = append(sqlRowList, sqlRow)
 	}
 	return
 }
@@ -121,44 +129,23 @@ func (r *Repository) GetDDLNamespace() (ddlNamespace string, err error) {
 	return
 }
 
-func (r *Repository) GetDDLSQL() (ddlMap map[string]string, err error) {
-	ddlMap = make(map[string]string)
+func (r *Repository) GetDDLSQL() (ddlSQLRowList []*SQLRow, err error) {
+	ddlSQLRowList = make([]*SQLRow, 0)
 	ddlNamespace, err := r.GetDDLNamespace()
 	if err != nil {
 		return
 	}
-	sqlMap, err := r.GetByNamespace(ddlNamespace, nil, true)
+	sqlRowList, err := r.GetByNamespace(ddlNamespace, nil)
 	if err != nil {
 		return
 	}
-	for fullname, ddl := range sqlMap {
-		createStr := ddl[:6]
-		if strings.ToLower(createStr) == "create" {
-			ddlMap[fullname] = ddl
-		}
-	}
-	return
-}
-
-func (r *Repository) GetMetaTpl(data interface{}) (metaTplMap map[string]string, err error) {
-	metaTplMap = make(map[string]string)
-	ddlNamespace, err := r.GetDDLNamespace()
-	if err != nil {
-		return
-	}
-	tplMap, err := r.GetByNamespace(ddlNamespace, data, false)
-	if err != nil {
-		return
-	}
-	metaTplFlagLen := len(MetaTplFlag)
-	for fullname, tpl := range tplMap {
-		lastDot := strings.LastIndex(fullname, ".")
-		name := fullname[lastDot+1:]
-		if len(name) < metaTplFlagLen {
+	for _, sqlRow := range sqlRowList {
+		if len(sqlRow.SQL) < 6 {
 			continue
 		}
-		if name[:metaTplFlagLen] == MetaTplFlag {
-			metaTplMap[fullname] = tpl
+		createStr := sqlRow.SQL[:6]
+		if strings.ToLower(createStr) == "create" {
+			ddlSQLRowList = append(ddlSQLRowList, sqlRow)
 		}
 	}
 	return
@@ -195,28 +182,24 @@ type TplEntity interface {
 }
 
 // 将模板名称，模板中的变量，封装到结构体中，使用结构体访问，避免拼写错误以及分散的硬编码，可以配合 gqttool 自动生成响应的结构体
-func (r *Repository) GetSQLByTplEntity(t TplEntity) (sqlStr string, err error) {
+func (r *Repository) GetSQLByTplEntity(t TplEntity) (sqlRow *SQLRow, err error) {
 	return r.GetSQL(t.TplName(), t)
 }
 
 // GetSQLByTplEntityRef 支持只返回error 函数签名
-func (r *Repository) GetSQLByTplEntityRef(t TplEntity, sqlStr *string) (err error) {
-	(*sqlStr), err = r.GetSQL(t.TplName(), t)
+func (r *Repository) GetSQLRawByTplEntityRef(t TplEntity, sqlStr *string) (err error) {
+	sqlRow, err := r.GetSQL(t.TplName(), t)
+	*sqlStr = sqlRow.SQL
 	return
 }
 
 //无sql注入的安全方式
-func (r *Repository) GetSQL(name string, data interface{}) (sqlStr string, err error) {
-	sqlStatement, vars, err := r.GetStatement(name, data)
+func (r *Repository) GetSQL(fullname string, data interface{}) (sqlRow *SQLRow, err error) {
+	defineResult, err := pkg.ExecuteTemplate(r.templates, fullname, data)
 	if err != nil {
-		return
+		return nil, err
 	}
-	sqlStr = r.Statement2SQL(sqlStatement, vars)
-	return
-}
-
-func (r *Repository) Statement2SQL(sqlStatement string, vars []interface{}) (sqlStr string) {
-	sqlStr = logger.ExplainSQL(sqlStatement, nil, `'`, vars...)
+	sqlRow, err = r.DefineResult2SQLRow(*defineResult)
 	return
 }
 
@@ -253,13 +236,6 @@ func (r *Repository) NewSQLChain() *SQLChain {
 	}
 }
 
-type SQLRow struct {
-	Tag       string
-	SQL       string
-	Statment  string
-	Arguments []interface{}
-	Result    interface{}
-}
 type SQLChain struct {
 	sqlRows       []*SQLRow
 	sqlRepository func() *Repository
@@ -273,15 +249,10 @@ func (s *SQLChain) ParseSQL(tplName string, args interface{}, result interface{}
 	if s.err != nil {
 		return s
 	}
-	sql, err := s.sqlRepository().GetSQL(tplName, args)
+	sqlRow, err := s.sqlRepository().GetSQL(tplName, args)
 	if err != nil {
 		s.err = err
 		return s
-	}
-	sqlRow := &SQLRow{
-		Tag:    tplName,
-		SQL:    sql,
-		Result: result,
 	}
 	s.sqlRows = append(s.sqlRows, sqlRow)
 	return s
@@ -294,15 +265,10 @@ func (s *SQLChain) ParseTpEntity(entity TplEntity, result interface{}) *SQLChain
 	if s.err != nil {
 		return s
 	}
-	sql, err := s.sqlRepository().GetSQLByTplEntity(entity)
+	sqlRow, err := s.sqlRepository().GetSQLByTplEntity(entity)
 	if err != nil {
 		s.err = err
 		return s
-	}
-	sqlRow := &SQLRow{
-		Tag:    entity.TplName(),
-		SQL:    sql,
-		Result: result,
 	}
 	s.sqlRows = append(s.sqlRows, sqlRow)
 	return s
@@ -332,11 +298,12 @@ func (s *SQLChain) Scan(fn func(sqlRowList []*SQLRow) (e error)) (err error) {
 }
 
 //AddSQL add one sql to SQLChain
-func (s *SQLChain) AddSQL(tag string, sql string, result interface{}) {
+func (s *SQLChain) AddSQL(namespace string, name string, sql string, result interface{}) {
 	sqlRow := &SQLRow{
-		Tag:    tag,
-		SQL:    sql,
-		Result: result,
+		Name:      name,
+		Namespace: name,
+		SQL:       sql,
+		Result:    result,
 	}
 	s.sqlRows = append(s.sqlRows, sqlRow)
 }

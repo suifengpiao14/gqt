@@ -5,15 +5,6 @@ import (
 	"testing"
 )
 
-func TestGetTplFilesByDir(t *testing.T) {
-	dir := "."
-	fileList, err := GetTplFilesByDir(dir)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(fileList)
-}
-
 type ExampleModel struct {
 	ExampleID string
 	ServiceID int
@@ -48,13 +39,4 @@ func TestModel2Entity(t *testing.T) {
 	to := &ExampleEntity{}
 	Model2TplEntity(from, to)
 	fmt.Println(to)
-}
-
-func TestStandardizeSpaces(t *testing.T) {
-	s := `
-	a     b 
-	c	d
-	`
-	ns := StandardizeSpaces(s)
-	fmt.Println(ns)
 }

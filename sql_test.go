@@ -107,21 +107,3 @@ type ModelStruct struct {
 func (s *ModelStruct) PrimaryKeyCamel() string {
 	return "ID"
 }
-func TestGetMetaTpl(t *testing.T) {
-	rpo := NewRepository()
-
-	err := rpo.AddByDir("example", TemplatefuncMap)
-	if err != nil {
-		panic(err)
-	}
-
-	data := &ModelStruct{
-		TableName:  "user",
-		PrimaryKey: "id",
-	}
-	ddlMap, err := rpo.GetMetaTpl(data)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%#v", ddlMap)
-}
