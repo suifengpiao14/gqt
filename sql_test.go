@@ -107,3 +107,24 @@ type ModelStruct struct {
 func (s *ModelStruct) PrimaryKeyCamel() string {
 	return "ID"
 }
+
+func TestSQLIn(t *testing.T) {
+	tpl := `
+	{{define "testIn"}}
+	 select * from aa where id {{in . .IDS}};
+	 {{end}}
+	`
+	repo = NewRepository()
+	err := repo.AddByNamespace("test", tpl, TemplatefuncMap)
+	if err != nil {
+		panic(err)
+	}
+	data := map[string]interface{}{
+		"IDS": []int{1, 3, 4},
+	}
+	sqlrow, err := repo.GetSQL("test.testIn", data)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(sqlrow)
+}
