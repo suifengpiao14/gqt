@@ -140,6 +140,7 @@ func (r *Repository) GetDDLSQL() (ddlSQLRowList []*SQLRow, err error) {
 		return
 	}
 	for _, sqlRow := range sqlRowList {
+		sqlRow.SQL = pkg.StandardizeSpaces(sqlRow.SQL)
 		if len(sqlRow.SQL) < 6 {
 			continue
 		}
