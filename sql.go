@@ -163,12 +163,19 @@ func (r *Repository) GetSQLByTplEntity(t TplEntity) (sqlRow *SQLRow, err error) 
 // GetSQLByTplEntityRef 支持只返回error 函数签名
 func (r *Repository) GetSQLRawByTplEntityRef(t TplEntity, sqlStr *string) (err error) {
 	sqlRow, err := r.GetSQL(t.TplName(), t)
+	if err != nil {
+		return err
+	}
 	*sqlStr = sqlRow.SQL
 	return
 }
 
 //无sql注入的安全方式
 func (r *Repository) GetSQL(fullname string, data interface{}) (sqlRow *SQLRow, err error) {
+	data, err = interface2map(data)
+	if err != nil {
+		return nil, err
+	}
 	defineResult, err := pkg.ExecuteTemplate(r.templates, fullname, data)
 	if err != nil {
 		return nil, err
