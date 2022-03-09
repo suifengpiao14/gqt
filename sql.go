@@ -1,7 +1,6 @@
 package gqt
 
 import (
-	"bytes"
 	"reflect"
 	"strings"
 	"text/template"
@@ -40,6 +39,19 @@ var RightDelim = "}}"
 // ddl namespace sufix . define name prefix
 var DDLNamespaceSuffix = "ddl"
 
+type SQLRow struct {
+	Name      string
+	Namespace string
+	SQL       string
+	Statment  string
+	Arguments []interface{}
+	Result    interface{}
+}
+
+type TplEntity interface {
+	TplName() string
+}
+
 func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error) {
 	r.templates, err = pkg.AddTemplateByDir(root, SQLSuffix, funcMap, LeftDelim, RightDelim)
 	if err != nil {
@@ -63,15 +75,6 @@ func (r *Repository) AddByNamespace(namespace string, content string, funcMap te
 	}
 	r.templates[namespace] = t
 	return
-}
-
-type SQLRow struct {
-	Name      string
-	Namespace string
-	SQL       string
-	Statment  string
-	Arguments []interface{}
-	Result    interface{}
 }
 
 func (r *Repository) DefineResult2SQLRow(defineResult pkg.DefineResult) (sqlRow *SQLRow, err error) {
@@ -152,36 +155,6 @@ func (r *Repository) GetDDLSQL() (ddlSQLRowList []*SQLRow, err error) {
 	return
 }
 
-// 支持返回Prepared Statement ,该模式优势1. 提升性能，避免重复解析 SQL 带来的开销，2. 避免 SQL 注入 缺点： 1. 存在两次与数据库的通信，在密集进行 SQL 查询的情况下，可能会出现 I/O 瓶颈
-func (r *Repository) GetStatement(name string, data interface{}) (sqlStatement string, vars []interface{}, err error) {
-	if name == "" {
-		err = errors.New("name not be empty")
-		return "", nil, err
-	}
-	mapData, err := interface2map(data)
-	if err != nil {
-		return "", nil, err
-	}
-	sqlNamed, err := r.Parse(name, &mapData) // 当data为map[string]interface{}时，模板内可以改变data值
-	if err != nil {
-		return "", nil, err
-	}
-	sqlStatement, vars, err = sqlx.Named(sqlNamed, mapData)
-	sqlStatement = strings.ReplaceAll(sqlStatement, "\r", "")
-	sqlStatement = strings.ReplaceAll(sqlStatement, "\n", "")
-	sqlStatement = strings.ReplaceAll(sqlStatement, "  ", " ")
-	sqlStatement = strings.Trim(sqlStatement, " ")
-	if err != nil {
-		err = errors.WithStack(err)
-		return
-	}
-	return
-}
-
-type TplEntity interface {
-	TplName() string
-}
-
 // 将模板名称，模板中的变量，封装到结构体中，使用结构体访问，避免拼写错误以及分散的硬编码，可以配合 gqttool 自动生成响应的结构体
 func (r *Repository) GetSQLByTplEntity(t TplEntity) (sqlRow *SQLRow, err error) {
 	return r.GetSQL(t.TplName(), t)
@@ -204,30 +177,10 @@ func (r *Repository) GetSQL(fullname string, data interface{}) (sqlRow *SQLRow, 
 	return
 }
 
-// Parse executes the template and returns the resulting SQL or an error.
-func (r *Repository) Parse(name string, data interface{}) (string, error) {
-	// Prepare namespace and block name
-	if name == "" {
-		return "", errors.Errorf("unnamed block")
-	}
-	path := strings.Split(name, ".")
-	namespace := strings.Join(path[0:len(path)-1], ".")
-	if namespace == "." {
-		namespace = ""
-	}
-	block := path[len(path)-1]
-
-	// Execute the template
-	var b bytes.Buffer
-	t, ok := r.templates[namespace]
-	if !ok {
-		return "", errors.Errorf("unknown namespace \"%s\"", namespace)
-	}
-	err := t.ExecuteTemplate(&b, block, data)
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-	return b.String(), nil
+type SQLChain struct {
+	sqlRows       []*SQLRow
+	sqlRepository func() *Repository
+	err           error
 }
 
 func (r *Repository) NewSQLChain() *SQLChain {
@@ -235,12 +188,6 @@ func (r *Repository) NewSQLChain() *SQLChain {
 		sqlRows:       make([]*SQLRow, 0),
 		sqlRepository: func() *Repository { return r },
 	}
-}
-
-type SQLChain struct {
-	sqlRows       []*SQLRow
-	sqlRepository func() *Repository
-	err           error
 }
 
 func (s *SQLChain) ParseSQL(tplName string, args interface{}, result interface{}) *SQLChain {
