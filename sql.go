@@ -6,38 +6,26 @@ import (
 	"text/template"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/suifengpiao14/gqt/v2/pkg"
+	"github.com/suifengpiao14/gqt/v2/gqttpl"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sync/singleflight"
 )
 
-// Repository stores SQL templates.
-type Repository struct {
+// RepositorySQL stores SQL templates.
+type RepositorySQL struct {
 	templates map[string]*template.Template // namespace: template
 }
 
-type DataVolume struct {
-	Data  interface{}
-	Extra *map[string]interface{}
-}
-
-// NewRepository creates a new Repository.
-func NewRepository() *Repository {
-	return &Repository{
+// NewRepository create a new Repository.
+func NewRepository() *RepositorySQL {
+	return &RepositorySQL{
 		templates: make(map[string]*template.Template),
 	}
 }
 
-var SQLSuffix = ".sql.tpl"
-var DDLSuffix = ".ddl.tpl"
-
-var MetaTplFlag = "metaTpl"
 var LeftDelim = "{{"
 var RightDelim = "}}"
-
-// ddl namespace sufix . define name prefix
-var DDLNamespaceSuffix = "ddl"
 
 type SQLRow struct {
 	Name      string
@@ -52,12 +40,12 @@ type TplEntity interface {
 	TplName() string
 }
 
-func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error) {
-	r.templates, err = pkg.AddTemplateByDir(root, SQLSuffix, funcMap, LeftDelim, RightDelim)
+func (r *RepositorySQL) AddByDir(root string, funcMap template.FuncMap) (err error) {
+	r.templates, err = gqttpl.AddTemplateByDir(root, gqttpl.SQLNamespaceSuffix, funcMap, LeftDelim, RightDelim)
 	if err != nil {
 		return
 	}
-	ddlTemplates, err := pkg.AddTemplateByDir(root, DDLSuffix, funcMap, LeftDelim, RightDelim)
+	ddlTemplates, err := gqttpl.AddTemplateByDir(root, gqttpl.DDLNamespaceSuffix, funcMap, LeftDelim, RightDelim)
 	if err != nil {
 		return
 	}
@@ -67,8 +55,8 @@ func (r *Repository) AddByDir(root string, funcMap template.FuncMap) (err error)
 	return
 }
 
-func (r *Repository) AddByNamespace(namespace string, content string, funcMap template.FuncMap) (err error) {
-	t, err := pkg.AddTemplateByStr(namespace, content, funcMap, LeftDelim, RightDelim)
+func (r *RepositorySQL) AddByNamespace(namespace string, content string, funcMap template.FuncMap) (err error) {
+	t, err := gqttpl.AddTemplateByStr(namespace, content, funcMap, LeftDelim, RightDelim)
 	if err != nil {
 		err = errors.WithStack(err)
 		return err
@@ -77,13 +65,13 @@ func (r *Repository) AddByNamespace(namespace string, content string, funcMap te
 	return
 }
 
-func (r *Repository) DefineResult2SQLRow(defineResult pkg.DefineResult) (sqlRow *SQLRow, err error) {
+func (r *RepositorySQL) DefineResult2SQLRow(defineResult gqttpl.DefineResult) (sqlRow *SQLRow, err error) {
 	sqlRow = &SQLRow{
 		Name:      defineResult.Name,
 		Namespace: defineResult.Namespace,
 	}
 
-	sqlNamed := pkg.StandardizeSpaces(defineResult.Output)
+	sqlNamed := gqttpl.StandardizeSpaces(defineResult.Output)
 	if sqlNamed == "" {
 		return
 	}
@@ -92,18 +80,18 @@ func (r *Repository) DefineResult2SQLRow(defineResult pkg.DefineResult) (sqlRow 
 		err = errors.WithStack(err)
 		return nil, err
 	}
-	sqlRow.SQL = pkg.Statement2SQL(sqlRow.Statment, sqlRow.Arguments)
+	sqlRow.SQL = gqttpl.Statement2SQL(sqlRow.Statment, sqlRow.Arguments)
 
 	return
 }
 
 // GetByNamespace get all template under namespace
-func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlRowList []*SQLRow, err error) {
+func (r *RepositorySQL) GetByNamespace(namespace string, data interface{}) (sqlRowList []*SQLRow, err error) {
 	data, err = interface2map(data)
 	if err != nil {
 		return nil, err
 	}
-	defineResultList, err := pkg.ExecuteNamespaceTemplate(r.templates, namespace, data)
+	defineResultList, err := gqttpl.ExecuteNamespaceTemplate(r.templates, namespace, data)
 	if err != nil {
 		return nil, err
 	}
@@ -118,21 +106,21 @@ func (r *Repository) GetByNamespace(namespace string, data interface{}) (sqlRowL
 	return
 }
 
-func (r *Repository) GetDDLNamespace() (ddlNamespace string, err error) {
+func (r *RepositorySQL) GetDDLNamespace() (ddlNamespace string, err error) {
 	for namespace := range r.templates {
-		if strings.HasSuffix(namespace, DDLNamespaceSuffix) {
+		if strings.HasSuffix(namespace, gqttpl.DDLNamespaceSuffix) {
 			ddlNamespace = namespace
 			break
 		}
 	}
 	if ddlNamespace == "" {
-		err = errors.Errorf("not find ddl namespace with sufix %s,you can set gqt.DDLNamespaceSuffix to change sufix", DDLNamespaceSuffix)
+		err = errors.Errorf("not find ddl namespace with sufix %s,you can set gqt.DDLNamespaceSuffix to change sufix", gqttpl.DDLNamespaceSuffix)
 		return
 	}
 	return
 }
 
-func (r *Repository) GetDDLSQL() (ddlSQLRowList []*SQLRow, err error) {
+func (r *RepositorySQL) GetDDLSQL() (ddlSQLRowList []*SQLRow, err error) {
 	ddlSQLRowList = make([]*SQLRow, 0)
 	ddlNamespace, err := r.GetDDLNamespace()
 	if err != nil {
@@ -143,7 +131,7 @@ func (r *Repository) GetDDLSQL() (ddlSQLRowList []*SQLRow, err error) {
 		return
 	}
 	for _, sqlRow := range sqlRowList {
-		sqlRow.SQL = pkg.StandardizeSpaces(sqlRow.SQL)
+		sqlRow.SQL = gqttpl.StandardizeSpaces(sqlRow.SQL)
 		if len(sqlRow.SQL) < 6 {
 			continue
 		}
@@ -156,12 +144,12 @@ func (r *Repository) GetDDLSQL() (ddlSQLRowList []*SQLRow, err error) {
 }
 
 // 将模板名称，模板中的变量，封装到结构体中，使用结构体访问，避免拼写错误以及分散的硬编码，可以配合 gqttool 自动生成响应的结构体
-func (r *Repository) GetSQLByTplEntity(t TplEntity) (sqlRow *SQLRow, err error) {
+func (r *RepositorySQL) GetSQLByTplEntity(t TplEntity) (sqlRow *SQLRow, err error) {
 	return r.GetSQL(t.TplName(), t)
 }
 
 // GetSQLByTplEntityRef 支持只返回error 函数签名
-func (r *Repository) GetSQLRawByTplEntityRef(t TplEntity, sqlStr *string) (err error) {
+func (r *RepositorySQL) GetSQLRawByTplEntityRef(t TplEntity, sqlStr *string) (err error) {
 	sqlRow, err := r.GetSQL(t.TplName(), t)
 	if err != nil {
 		return err
@@ -171,12 +159,12 @@ func (r *Repository) GetSQLRawByTplEntityRef(t TplEntity, sqlStr *string) (err e
 }
 
 //无sql注入的安全方式
-func (r *Repository) GetSQL(fullname string, data interface{}) (sqlRow *SQLRow, err error) {
+func (r *RepositorySQL) GetSQL(fullname string, data interface{}) (sqlRow *SQLRow, err error) {
 	data, err = interface2map(data)
 	if err != nil {
 		return nil, err
 	}
-	defineResult, err := pkg.ExecuteTemplate(r.templates, fullname, data)
+	defineResult, err := gqttpl.ExecuteTemplate(r.templates, fullname, data)
 	if err != nil {
 		return nil, err
 	}
@@ -186,14 +174,14 @@ func (r *Repository) GetSQL(fullname string, data interface{}) (sqlRow *SQLRow, 
 
 type SQLChain struct {
 	sqlRows       []*SQLRow
-	sqlRepository func() *Repository
+	sqlRepository func() *RepositorySQL
 	err           error
 }
 
-func (r *Repository) NewSQLChain() *SQLChain {
+func (r *RepositorySQL) NewSQLChain() *SQLChain {
 	return &SQLChain{
 		sqlRows:       make([]*SQLRow, 0),
-		sqlRepository: func() *Repository { return r },
+		sqlRepository: func() *RepositorySQL { return r },
 	}
 }
 
@@ -278,7 +266,7 @@ func (s *SQLChain) Error() (err error) {
 }
 
 // 批量获取sql记录
-func NewSQLChain(sqlRepository func() *Repository) (s *SQLChain) {
+func NewSQLChain(sqlRepository func() *RepositorySQL) (s *SQLChain) {
 	s = &SQLChain{
 		sqlRows:       make([]*SQLRow, 0),
 		sqlRepository: sqlRepository,

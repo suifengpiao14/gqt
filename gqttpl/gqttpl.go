@@ -1,4 +1,4 @@
-package pkg
+package gqttpl
 
 import (
 	"bytes"
@@ -8,19 +8,39 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
+	"goa.design/goa/v3/codegen"
 	"gorm.io/gorm/logger"
 )
 
-func AddTemplateByDir(root string, suffix string, funcMap template.FuncMap, leftDelim string, rightDelim string) (templateMap map[string]*template.Template, err error) {
+var TPlSuffix = ".tpl"
+var SQLNamespaceSuffix = "sql"
+var DDLNamespaceSuffix = "ddl"
+var ConfigNamespaceSuffix = "config"
+var MetaNamespaceSuffix = "meta"
+var CURLNamespaceSuffix = "curl"
+
+// RepositoryTemplate stores  templates.
+type RepositoryTemplate struct {
+	templates map[string]*template.Template // namespace: template
+}
+
+// NewRepositoryTemplate create a new RepositoryTemplate.
+func NewRepositoryTemplate() *RepositoryTemplate {
+	return &RepositoryTemplate{
+		templates: make(map[string]*template.Template),
+	}
+}
+
+func AddTemplateByDir(root string, namespaceSuffix string, funcMap template.FuncMap, leftDelim string, rightDelim string) (templateMap map[string]*template.Template, err error) {
 	templateMap = make(map[string]*template.Template)
 	// List the directories
-	allFileList, err := GetTplFilesByDir(root, suffix)
+	allFileList, err := GetTplFilesByDir(root, namespaceSuffix)
 	if err != nil {
 		err = errors.WithStack(err)
 		return nil, err
 	}
 	for _, filename := range allFileList {
-		namespace := FileName2Namespace(filename, root, suffix)
+		namespace := FileName2Namespace(filename, root)
 		t, err := template.New(namespace).Funcs(funcMap).Delims(leftDelim, rightDelim).ParseFiles(filename)
 		if err != nil {
 			err = errors.WithStack(err)
@@ -42,6 +62,7 @@ func AddTemplateByStr(namespace string, content string, funcMap template.FuncMap
 
 type DefineResult struct {
 	Name      string
+	Tag       string // 标记类型 sql、ddl、sqlMeta、curl、curlMeta ...
 	Namespace string
 	Output    string
 	Input     interface{}
@@ -49,6 +70,12 @@ type DefineResult struct {
 
 func (d *DefineResult) Fullname() (fullname string) {
 	fullname = fmt.Sprintf("%s.%s", d.Namespace, d.Name)
+	return
+}
+func (d *DefineResult) FullnameCamel() (fullnameCamel string) {
+	fullname := fmt.Sprintf("%s_%s", strings.ReplaceAll(d.Namespace, ".", "_"), d.Name)
+	fullnameCamel = ToCamel(fullname)
+
 	return
 }
 
@@ -123,13 +150,13 @@ func ExecuteTemplate(templateMap map[string]*template.Template, fullname string,
 }
 
 // GetTplFilesByDir get current and reverse dir tpl file
-func GetTplFilesByDir(dir string, suffix string) (allFileList []string, err error) {
-	pattern := fmt.Sprintf("%s/*%s", strings.TrimRight(dir, "/"), suffix)
+func GetTplFilesByDir(dir string, namespaceSuffix string) (allFileList []string, err error) {
+	pattern := fmt.Sprintf("%s/*%s%s", strings.TrimRight(dir, "/"), namespaceSuffix, TPlSuffix)
 	allFileList, err = filepath.Glob(pattern)
 	if err != nil {
 		return nil, err
 	}
-	pattern = fmt.Sprintf("%s/**/*%s", strings.TrimRight(dir, "/"), suffix)
+	pattern = fmt.Sprintf("%s/**/*%s%s", strings.TrimRight(dir, "/"), namespaceSuffix, TPlSuffix)
 	subDirFileList, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, err
@@ -138,10 +165,10 @@ func GetTplFilesByDir(dir string, suffix string) (allFileList []string, err erro
 	return
 }
 
-func FileName2Namespace(filename string, root string, suffix string) (namespace string) {
+func FileName2Namespace(filename string, root string) (namespace string) {
 	prefix := strings.ReplaceAll(root, "\\", ".")
 	prefix = strings.ReplaceAll(prefix, "/", ".")
-	namespace = strings.TrimSuffix(filename, suffix)
+	namespace = strings.TrimSuffix(filename, TPlSuffix)
 	namespace = strings.ReplaceAll(namespace, "\\", ".")
 	namespace = strings.ReplaceAll(namespace, "/", ".")
 	namespace = strings.TrimPrefix(namespace, prefix)
@@ -156,4 +183,17 @@ func StandardizeSpaces(s string) string {
 func Statement2SQL(sqlStatement string, vars []interface{}) (sqlStr string) {
 	sqlStr = logger.ExplainSQL(sqlStatement, nil, `'`, vars...)
 	return
+}
+
+// 封装 goa.design/goa/v3/codegen 方便后续可定制
+func ToCamel(name string) string {
+	return codegen.CamelCase(name, true, true)
+}
+
+func ToLowerCamel(name string) string {
+	return codegen.CamelCase(name, false, true)
+}
+
+func SnakeCase(name string) string {
+	return codegen.SnakeCase(name)
 }

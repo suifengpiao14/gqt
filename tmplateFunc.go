@@ -7,7 +7,7 @@ import (
 	"text/template"
 	"time"
 
-	"goa.design/goa/v3/codegen"
+	"github.com/suifengpiao14/gqt/v2/gqttpl"
 )
 
 var TemplatefuncMap = template.FuncMap{
@@ -17,9 +17,9 @@ var TemplatefuncMap = template.FuncMap{
 	"contains":      strings.Contains,
 	"newPreComma":   NewPreComma,
 	"in":            In,
-	"toCamel":       ToCamel,
-	"toLowerCamel":  ToLowerCamel,
-	"snakeCase":     SnakeCase,
+	"toCamel":       gqttpl.ToCamel,
+	"toLowerCamel":  gqttpl.ToLowerCamel,
+	"snakeCase":     gqttpl.SnakeCase,
 }
 
 func SetMapData(dataVolume interface{}, k string, value interface{}) {
@@ -37,7 +37,7 @@ func SetMapData(dataVolume interface{}, k string, value interface{}) {
 		panic(msg)
 	}
 	v.SetMapIndex(reflect.ValueOf(k), reflect.ValueOf(value))
-	return
+
 }
 func GetMapData(dataVolume interface{}, k string) (value interface{}) {
 	t := reflect.TypeOf(dataVolume)
@@ -147,17 +147,4 @@ func In(dataVolume interface{}, data interface{}) (str string, err error) {
 	str = strings.Join(placeholders, ",")
 	return str, nil
 
-}
-
-// 封装 goa.design/goa/v3/codegen 方便后续可定制
-func ToCamel(name string) string {
-	return codegen.CamelCase(name, true, true)
-}
-
-func ToLowerCamel(name string) string {
-	return codegen.CamelCase(name, false, true)
-}
-
-func SnakeCase(name string) string {
-	return codegen.SnakeCase(name)
 }

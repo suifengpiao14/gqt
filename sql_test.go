@@ -14,7 +14,7 @@ import (
 )
 
 var testDir string
-var repo *Repository
+var repo *RepositorySQL
 
 func init() {
 	var err error
