@@ -60,29 +60,38 @@ func AddTemplateByStr(namespace string, content string, funcMap template.FuncMap
 	return
 }
 
-type DefineResult struct {
+type TPLDefine struct {
 	Name      string
-	Tag       string // 标记类型 sql、ddl、sqlMeta、curl、curlMeta ...
 	Namespace string
 	Output    string
 	Input     interface{}
 }
 
-func (d *DefineResult) Fullname() (fullname string) {
+func (d *TPLDefine) Fullname() (fullname string) {
 	fullname = fmt.Sprintf("%s.%s", d.Namespace, d.Name)
 	return
 }
-func (d *DefineResult) FullnameCamel() (fullnameCamel string) {
+func (d *TPLDefine) FullnameCamel() (fullnameCamel string) {
 	fullname := fmt.Sprintf("%s_%s", strings.ReplaceAll(d.Namespace, ".", "_"), d.Name)
 	fullnameCamel = ToCamel(fullname)
 
+	return
+}
+func (d *TPLDefine) Tag() (tag string) {
+	lastIndex := strings.Index(d.Namespace, ".")
+	tag = d.Namespace
+	if lastIndex > -1 {
+		tag = d.Namespace[lastIndex+1:]
+	}
 	return
 }
 
 func SplitFullname(fullname string) (namespace string, name string) {
 	lastIndex := strings.LastIndex(fullname, ".")
 	if lastIndex < 0 {
-		panic("illegal fullname ,want fullname format namespace.name")
+		namespace = ""
+		name = fullname
+		return
 	}
 	namespace = fullname[:lastIndex]
 	name = fullname[lastIndex+1:]
@@ -90,7 +99,7 @@ func SplitFullname(fullname string) (namespace string, name string) {
 }
 
 // ExecuteNamespaceTemplate execute all template under namespace
-func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespace string, data interface{}) (defineResultList []*DefineResult, err error) {
+func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespace string, data interface{}) (tplDefineList []*TPLDefine, err error) {
 	t, ok := templateMap[namespace]
 	if !ok {
 		err = errors.Errorf("not found namespace:%s", namespace)
@@ -99,19 +108,19 @@ func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespa
 	if err != nil {
 		return nil, err
 	}
-	defineResultList = make([]*DefineResult, 0)
+	tplDefineList = make([]*TPLDefine, 0)
 	templates := t.Templates()
 	for _, tpl := range templates {
-		defineResult, err := execTpl(tpl, namespace, data)
+		tplDefine, err := execTpl(tpl, namespace, data)
 		if err != nil {
 			return nil, err
 		}
-		defineResultList = append(defineResultList, defineResult)
+		tplDefineList = append(tplDefineList, tplDefine)
 	}
 	return
 }
 
-func execTpl(tpl *template.Template, namespace string, data interface{}) (defineResult *DefineResult, err error) {
+func execTpl(tpl *template.Template, namespace string, data interface{}) (tplDefine *TPLDefine, err error) {
 	var b bytes.Buffer
 	err = tpl.Execute(&b, &data) // may adding more args with template func
 	if err != nil {
@@ -119,7 +128,7 @@ func execTpl(tpl *template.Template, namespace string, data interface{}) (define
 		return
 	}
 	out := b.String()
-	defineResult = &DefineResult{
+	tplDefine = &TPLDefine{
 		Name:      tpl.Name(),
 		Namespace: namespace,
 		Output:    out,
@@ -129,7 +138,7 @@ func execTpl(tpl *template.Template, namespace string, data interface{}) (define
 }
 
 // ExecuteNamespaceTemplate execute all template under namespace
-func ExecuteTemplate(templateMap map[string]*template.Template, fullname string, data interface{}) (defineResult *DefineResult, err error) {
+func ExecuteTemplate(templateMap map[string]*template.Template, fullname string, data interface{}) (tplDefine *TPLDefine, err error) {
 	namespace, name := SplitFullname(fullname)
 	t, ok := templateMap[namespace]
 	if !ok {
@@ -141,7 +150,7 @@ func ExecuteTemplate(templateMap map[string]*template.Template, fullname string,
 		err = errors.Errorf("ExecuteTemplate: no template %q associated with template %q", name, t.Name())
 		return nil, err
 	}
-	defineResult, err = execTpl(tpl, namespace, data)
+	tplDefine, err = execTpl(tpl, namespace, data)
 	if err != nil {
 		return nil, err
 	}
@@ -151,12 +160,14 @@ func ExecuteTemplate(templateMap map[string]*template.Template, fullname string,
 
 // GetTplFilesByDir get current and reverse dir tpl file
 func GetTplFilesByDir(dir string, namespaceSuffix string) (allFileList []string, err error) {
-	pattern := fmt.Sprintf("%s/*%s%s", strings.TrimRight(dir, "/"), namespaceSuffix, TPlSuffix)
-	allFileList, err = filepath.Glob(pattern)
+	dir = strings.TrimRight(dir, "/")
+	pattern := fmt.Sprintf("%s/*%s%s", dir, namespaceSuffix, TPlSuffix)
+	directFileList, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, err
 	}
-	pattern = fmt.Sprintf("%s/**/*%s%s", strings.TrimRight(dir, "/"), namespaceSuffix, TPlSuffix)
+	allFileList = append(allFileList, directFileList...)
+	pattern = fmt.Sprintf("%s/**/*%s%s", dir, namespaceSuffix, TPlSuffix)
 	subDirFileList, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, err

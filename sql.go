@@ -17,8 +17,8 @@ type RepositorySQL struct {
 	templates map[string]*template.Template // namespace: template
 }
 
-// NewRepository create a new Repository.
-func NewRepository() *RepositorySQL {
+// NewRepositorySQL create a new Repository.
+func NewRepositorySQL() *RepositorySQL {
 	return &RepositorySQL{
 		templates: make(map[string]*template.Template),
 	}
@@ -65,7 +65,7 @@ func (r *RepositorySQL) AddByNamespace(namespace string, content string, funcMap
 	return
 }
 
-func (r *RepositorySQL) DefineResult2SQLRow(defineResult gqttpl.DefineResult) (sqlRow *SQLRow, err error) {
+func (r *RepositorySQL) DefineResult2SQLRow(defineResult gqttpl.TPLDefine) (sqlRow *SQLRow, err error) {
 	sqlRow = &SQLRow{
 		Name:      defineResult.Name,
 		Namespace: defineResult.Namespace,

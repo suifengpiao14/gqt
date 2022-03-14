@@ -22,8 +22,20 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	testDir = filepath.Join(testDir, "../test")
-	repo = NewRepository()
+	testDir = filepath.Join(testDir, "example")
+	repo = NewRepositorySQL()
+}
+
+func TestSubDefineWhere(t *testing.T) {
+	err := repo.AddByDir(testDir, TemplatefuncMap)
+	if err != nil {
+		panic(err)
+	}
+	sql, err := repo.GetSQL("sql.list", nil)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Sprintln(sql)
 }
 
 func TestStruct(t *testing.T) {
@@ -86,7 +98,7 @@ func TestSQLNamed(t *testing.T) {
 }
 
 func TestGetDDLSQL(t *testing.T) {
-	rpo := NewRepository()
+	rpo := NewRepositorySQL()
 
 	err := rpo.AddByDir("example", TemplatefuncMap)
 	if err != nil {
@@ -114,7 +126,7 @@ func TestSQLIn(t *testing.T) {
 	 select * from aa where id {{in . .IDS}};
 	 {{end}}
 	`
-	repo = NewRepository()
+	repo = NewRepositorySQL()
 	err := repo.AddByNamespace("test", tpl, TemplatefuncMap)
 	if err != nil {
 		panic(err)
