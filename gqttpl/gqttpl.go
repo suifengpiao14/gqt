@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -199,7 +200,7 @@ func GetTplFilesByFS(fsys fs.FS, dir string, namespaceSuffix string) (allFileLis
 	}
 	allFileList = append(allFileList, directFileList...)
 	pattern = fmt.Sprintf("%s/**/*%s%s", dir, namespaceSuffix, TPlSuffix)
-	subDirFileList, err := fs.Glob(fsys, pattern)
+	subDirFileList, err := Glob(fsys, pattern)
 	if err != nil {
 		return nil, err
 	}
@@ -256,4 +257,25 @@ func ToLowerCamel(name string) string {
 
 func SnakeCase(name string) string {
 	return codegen.SnakeCase(name)
+}
+
+// Glob adds double-star support to the core path/filepath Glob function.
+// It's useful when your globs might have double-stars, but you're not sure.
+func Glob(fsys fs.FS, pattern string) ([]string, error) {
+	if !strings.Contains(pattern, "**") {
+		// passthru to core package if no double-star
+		return fs.Glob(fsys, pattern)
+	}
+	var matches []string
+	regStr := strings.ReplaceAll(pattern, "**", ".*")
+	reg := regexp.MustCompile(regStr)
+	fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if !d.IsDir() {
+			if reg.MatchString(path) {
+				matches = append(matches, path)
+			}
+		}
+		return nil
+	})
+	return matches, nil
 }

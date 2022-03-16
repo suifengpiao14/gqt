@@ -145,7 +145,7 @@ func TestSQLIn(t *testing.T) {
 //go:embed  example
 var RepositoryFS embed.FS
 
-func TestAddBy(t *testing.T) {
+func TestAddByFS(t *testing.T) {
 	rpo := NewRepositorySQL()
 	err := rpo.AddByFS(RepositoryFS, ".", TemplatefuncMap)
 	if err != nil {
