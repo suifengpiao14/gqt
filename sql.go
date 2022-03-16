@@ -1,6 +1,7 @@
 package gqt
 
 import (
+	"io/fs"
 	"reflect"
 	"strings"
 	"text/template"
@@ -46,6 +47,21 @@ func (r *RepositorySQL) AddByDir(root string, funcMap template.FuncMap) (err err
 		return
 	}
 	ddlTemplates, err := gqttpl.AddTemplateByDir(root, gqttpl.DDLNamespaceSuffix, funcMap, LeftDelim, RightDelim)
+	if err != nil {
+		return
+	}
+	for fullname, tpl := range ddlTemplates {
+		r.templates[fullname] = tpl
+	}
+	return
+}
+
+func (r *RepositorySQL) AddByFS(fsys fs.FS, root string, funcMap template.FuncMap) (err error) {
+	r.templates, err = gqttpl.AddTemplateByFS(fsys, root, gqttpl.SQLNamespaceSuffix, funcMap, LeftDelim, RightDelim)
+	if err != nil {
+		return
+	}
+	ddlTemplates, err := gqttpl.AddTemplateByFS(fsys, root, gqttpl.DDLNamespaceSuffix, funcMap, LeftDelim, RightDelim)
 	if err != nil {
 		return
 	}

@@ -5,6 +5,7 @@
 package gqt
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -139,4 +140,15 @@ func TestSQLIn(t *testing.T) {
 		panic(err)
 	}
 	fmt.Println(sqlrow)
+}
+
+//go:embed  example
+var RepositoryFS embed.FS
+
+func TestAddBy(t *testing.T) {
+	rpo := NewRepositorySQL()
+	err := rpo.AddByFS(RepositoryFS, ".", TemplatefuncMap)
+	if err != nil {
+		panic(err)
+	}
 }

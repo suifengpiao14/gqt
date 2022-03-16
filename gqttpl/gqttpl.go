@@ -3,6 +3,7 @@ package gqttpl
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -44,6 +45,37 @@ func AddTemplateByDir(root string, namespaceSuffix string, funcMap template.Func
 		t, err := template.New(namespace).Funcs(funcMap).Delims(leftDelim, rightDelim).ParseFiles(filename)
 		if err != nil {
 			err = errors.WithStack(err)
+			return nil, err
+		}
+		templateMap[namespace] = t
+	}
+	return
+}
+
+func AddTemplateByFS(fsys fs.FS, root string, namespaceSuffix string, funcMap template.FuncMap, leftDelim string, rightDelim string) (templateMap map[string]*template.Template, err error) {
+	templateMap = make(map[string]*template.Template)
+	// List the directories
+	allFileList, err := GetTplFilesByFS(fsys, root, namespaceSuffix)
+	if err != nil {
+		err = errors.WithStack(err)
+		return nil, err
+	}
+	for _, filename := range allFileList {
+		namespace := FileName2Namespace(filename, root)
+		finfo, err := fsys.Open(filename)
+		if err != nil {
+			err = errors.WithStack(err)
+			return nil, err
+		}
+		var b []byte
+		_, err = finfo.Read(b)
+		if err != nil {
+			err = errors.WithStack(err)
+			return nil, err
+		}
+		content := string(b)
+		t, err := AddTemplateByStr(namespace, content, funcMap, leftDelim, rightDelim)
+		if err != nil {
 			return nil, err
 		}
 		templateMap[namespace] = t
@@ -155,6 +187,23 @@ func ExecuteTemplate(templateMap map[string]*template.Template, fullname string,
 		return nil, err
 	}
 
+	return
+}
+
+func GetTplFilesByFS(fsys fs.FS, dir string, namespaceSuffix string) (allFileList []string, err error) {
+	dir = strings.TrimRight(dir, "/")
+	pattern := fmt.Sprintf("%s/*%s%s", dir, namespaceSuffix, TPlSuffix)
+	directFileList, err := fs.Glob(fsys, pattern)
+	if err != nil {
+		return nil, err
+	}
+	allFileList = append(allFileList, directFileList...)
+	pattern = fmt.Sprintf("%s/**/*%s%s", dir, namespaceSuffix, TPlSuffix)
+	subDirFileList, err := fs.Glob(fsys, pattern)
+	if err != nil {
+		return nil, err
+	}
+	allFileList = append(allFileList, subDirFileList...)
 	return
 }
 
