@@ -10,7 +10,6 @@ import (
 	"github.com/suifengpiao14/gqt/v2/gqttpl"
 
 	"github.com/pkg/errors"
-	"golang.org/x/sync/singleflight"
 )
 
 // RepositorySQL stores SQL templates.
@@ -91,7 +90,11 @@ func (r *RepositorySQL) DefineResult2SQLRow(defineResult gqttpl.TPLDefine) (sqlR
 	if sqlNamed == "" {
 		return
 	}
-	sqlRow.Statment, sqlRow.Arguments, err = sqlx.Named(sqlNamed, defineResult.Input)
+	data, err := getNamedData(defineResult.Input)
+	if err != nil {
+		return
+	}
+	sqlRow.Statment, sqlRow.Arguments, err = sqlx.Named(sqlNamed, data)
 	if err != nil {
 		err = errors.WithStack(err)
 		return nil, err
@@ -103,10 +106,6 @@ func (r *RepositorySQL) DefineResult2SQLRow(defineResult gqttpl.TPLDefine) (sqlR
 
 // GetByNamespace get all template under namespace
 func (r *RepositorySQL) GetByNamespace(namespace string, data interface{}) (sqlRowList []*SQLRow, err error) {
-	data, err = interface2map(data)
-	if err != nil {
-		return nil, err
-	}
 	defineResultList, err := gqttpl.ExecuteNamespaceTemplate(r.templates, namespace, data)
 	if err != nil {
 		return nil, err
@@ -176,22 +175,12 @@ func (r *RepositorySQL) GetSQLRawByTplEntityRef(t TplEntity, sqlStr *string) (er
 
 //无sql注入的安全方式
 func (r *RepositorySQL) GetSQL(fullname string, data interface{}) (sqlRow *SQLRow, err error) {
-	data, err = interface2map(data)
-	if err != nil {
-		return nil, err
-	}
 	defineResult, err := gqttpl.ExecuteTemplate(r.templates, fullname, data)
 	if err != nil {
 		return nil, err
 	}
 	sqlRow, err = r.DefineResult2SQLRow(*defineResult)
 	return
-}
-
-type SQLChain struct {
-	sqlRows       []*SQLRow
-	sqlRepository func() *RepositorySQL
-	err           error
 }
 
 func (r *RepositorySQL) NewSQLChain() *SQLChain {
@@ -201,131 +190,60 @@ func (r *RepositorySQL) NewSQLChain() *SQLChain {
 	}
 }
 
-func (s *SQLChain) ParseSQL(tplName string, args interface{}, result interface{}) *SQLChain {
-	if s.sqlRepository == nil {
-		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
-	}
-	if s.err != nil {
-		return s
-	}
-	sqlRow, err := s.sqlRepository().GetSQL(tplName, args)
-	if err != nil {
-		s.err = err
-		return s
-	}
-	s.sqlRows = append(s.sqlRows, sqlRow)
-	return s
-}
-
-func (s *SQLChain) ParseTpEntity(entity TplEntity, result interface{}) *SQLChain {
-	if s.sqlRepository == nil {
-		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
-	}
-	if s.err != nil {
-		return s
-	}
-	sqlRow, err := s.sqlRepository().GetSQLByTplEntity(entity)
-	if err != nil {
-		s.err = err
-		return s
-	}
-	s.sqlRows = append(s.sqlRows, sqlRow)
-	return s
-}
-
-//GetAllSQL get all sql from SQLChain
-func (s *SQLChain) SQLRows() (sqlRowList []*SQLRow, err error) {
-	return s.sqlRows, s.err
-}
-
-//Exec exec sql
-func (s *SQLChain) Exec(fn func(sqlRowList []*SQLRow) (e error)) (err error) {
-	if s.err != nil {
-		return s.err
-	}
-	s.err = fn(s.sqlRows)
-	return s.err
-}
-
-//Exec exec sql ,get data
-func (s *SQLChain) Scan(fn func(sqlRowList []*SQLRow) (e error)) (err error) {
-	if s.err != nil {
-		return
-	}
-	s.err = fn(s.sqlRows)
-	return s.err
-}
-
-//AddSQL add one sql to SQLChain
-func (s *SQLChain) AddSQL(namespace string, name string, sql string, result interface{}) {
-	sqlRow := &SQLRow{
-		Name:      name,
-		Namespace: name,
-		SQL:       sql,
-		Result:    result,
-	}
-	s.sqlRows = append(s.sqlRows, sqlRow)
-}
-
-func (s *SQLChain) SetError(err error) {
-	if s.err != nil {
-		return
-	}
-	if err != nil {
-		err = errors.WithStack(err)
-		s.err = err
-	}
-}
-
-func (s *SQLChain) Error() (err error) {
-	return s.err
-}
-
-// 批量获取sql记录
-func NewSQLChain(sqlRepository func() *RepositorySQL) (s *SQLChain) {
-	s = &SQLChain{
-		sqlRows:       make([]*SQLRow, 0),
-		sqlRepository: sqlRepository,
-	}
-	return
-}
-
-var g = singleflight.Group{}
-
-func Flight(sqlStr string, fn func() (interface{}, error)) (err error) {
-	if sqlStr == "" {
-		err = errors.New("sql must not be empty")
-		return
-	}
-	_, err, _ = g.Do(GetMD5LOWER(sqlStr), fn)
-	if err != nil {
-		err = errors.WithStack(err)
-	}
-	return
-}
-
-func interface2map(data interface{}) (out map[string]interface{}, err error) {
-	out = make(map[string]interface{}, 0)
+func getNamedData(data interface{}) (out map[string]interface{}, err error) {
+	out = make(map[string]interface{})
 	if data == nil {
 		return
 	}
+	for {
+		dataI, ok := data.(*interface{})
+		if ok {
+			data = *dataI
+		} else {
+			break
+		}
+	}
+	mapOut, ok := data.(map[string]interface{})
+	if ok {
+		out = mapOut
+		return
+	}
+	dataVolume, err := Convert2DataVolume(data)
+	if err != nil {
+		return
+	}
+
 	v := reflect.Indirect(reflect.ValueOf(data))
-	switch v.Kind() {
-	case reflect.Map:
-		keys := v.MapKeys()
-		for _, key := range keys {
-			v := v.MapIndex(key).Interface()
-			out[key.String()] = v
+
+	if v.Kind() != reflect.Struct {
+		return
+	}
+	// 提取结构体field字段
+	fieldNum := v.NumField()
+	for i := 0; i < fieldNum; i++ {
+		fv := v.Field(i)
+		fname := fv.Type().Name()
+		if fv.Kind() == reflect.Ptr {
+			fv = fv.Elem()
 		}
-	case reflect.Struct:
-		num := v.NumField()
-		for i := 0; i < num; i++ {
-			name := v.Type().Field(i).Name
-			v := v.Field(i).Interface()
-			out[name] = v
+		ft := fv.Type()
+		switch ft.Kind() {
+		case reflect.Int:
+			out[fname] = fv.Int()
+		case reflect.Int64:
+			out[fname] = int64(fv.Int())
+		case reflect.Float64:
+			out[fname] = fv.Float()
+		case reflect.String:
+			out[fname] = fv.String()
+		default:
+			out[fname] = fv.Interface()
 		}
-	default:
-		err = errors.Errorf("not support type %#v", data)
+	}
+	// 模板中动态数据增加/覆盖
+	dynamicData := dataVolume.GetDynamicValus()
+	for key, val := range dynamicData {
+		out[key] = val
 	}
 	return
 }

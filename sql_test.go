@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"unsafe"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -121,7 +122,32 @@ func (s *ModelStruct) PrimaryKeyCamel() string {
 	return "ID"
 }
 
-func TestSQLIn(t *testing.T) {
+type DataVolumeInt struct {
+	dataVolume []int
+}
+
+// 测试指针类型转换
+func TestPtrConvert(t *testing.T) {
+	mapPtr := &map[string]interface{}{
+		"IDS": []int{1, 3, 4},
+	}
+	volumePtr := &DataVolumeInt{
+		dataVolume: []int{5, 6, 7},
+	}
+	//interfac := interface{}(mapPtr)
+
+	a := (*DataVolumeInt)(unsafe.Pointer(mapPtr))
+	*a = *volumePtr
+	fmt.Println(a)
+	fmt.Println(volumePtr)
+	//fmt.Println(mapPtr)
+
+	fmt.Printf("a:%d--v:%d----m:%d", unsafe.Pointer(a), unsafe.Pointer(volumePtr), unsafe.Pointer(mapPtr))
+	fmt.Print("\n")
+	fmt.Printf("a:%#v--v:%#v----m:", *a, *volumePtr)
+}
+
+func TestSQLInMap(t *testing.T) {
 	tpl := `
 	{{define "testIn"}}
 	 select * from aa where id {{in . .IDS}};
@@ -134,6 +160,35 @@ func TestSQLIn(t *testing.T) {
 	}
 	data := map[string]interface{}{
 		"IDS": []int{1, 3, 4},
+	}
+	sqlrow, err := repo.GetSQL("test.testIn", data)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(sqlrow)
+}
+
+type DataVolumeTest struct {
+	Hello string
+	IDS   []int
+	DataVolumeMap
+}
+
+func TestSQLInDataVolume(t *testing.T) {
+	tpl := `
+	{{define "testIn"}}
+	 select * from aa where id {{in . .IDS}};
+	 {{end}}
+	`
+	repo = NewRepositorySQL()
+	err := repo.AddByNamespace("test", tpl, TemplatefuncMap)
+	if err != nil {
+		panic(err)
+	}
+	data := &DataVolumeTest{
+		Hello: "hell",
+		IDS:   []int{1, 3, 4},
+		//DataVolumeMap: make(DataVolumeMap),
 	}
 	sqlrow, err := repo.GetSQL("test.testIn", data)
 	if err != nil {

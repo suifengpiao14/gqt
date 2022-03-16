@@ -2,12 +2,11 @@ package gqt
 
 import (
 	"crypto/md5"
-	"embed"
 	"encoding/hex"
-	"fmt"
-	"strings"
 
 	"github.com/jinzhu/copier"
+	"github.com/pkg/errors"
+	"golang.org/x/sync/singleflight"
 )
 
 func GetMD5LOWER(s string) string {
@@ -16,49 +15,24 @@ func GetMD5LOWER(s string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// ReadEmbedFS read embed file
-func ReadEmbedFS(repositoryFS embed.FS, filename string, fileMap *map[string][]byte) {
-	filename = strings.TrimRight(filename, "/")
-	if len(filename) >= 2 {
-		firstTwoLetter := filename[0:2]
-		if firstTwoLetter == "./" { // 切除./ 开头的路径
-			filename = filename[2:]
-		}
-	}
-	fsFile, err := repositoryFS.Open(filename)
-	if err != nil {
-		panic(err)
-	}
-	fsInfo, err := fsFile.Stat()
-	if err != nil {
-		panic(err)
-	}
-	if fsInfo.IsDir() {
-		fsList, err := repositoryFS.ReadDir(filename)
-		if err != nil {
-			panic(err)
-		}
-		for _, fileInfo := range fsList {
-			subFilename := fmt.Sprintf("%s/%s", filename, fileInfo.Name())
-			if fileInfo.IsDir() {
-
-				ReadEmbedFS(repositoryFS, subFilename, fileMap)
-				continue
-			}
-			b, err := repositoryFS.ReadFile(subFilename)
-			if err != nil {
-				panic(err)
-			}
-			(*fileMap)[subFilename] = b
-		}
-		return
-	}
-}
-
 // Model2Entity copy model to entity ,some times input used to insert and update ,in this case input mybe model, copy model value to insertEntity and updateEntity
 func Model2TplEntity(from interface{}, to TplEntity) {
 	err := copier.Copy(to, from)
 	if err != nil {
 		panic(err)
 	}
+}
+
+var g = singleflight.Group{}
+
+func Flight(sqlStr string, fn func() (interface{}, error)) (err error) {
+	if sqlStr == "" {
+		err = errors.New("sql must not be empty")
+		return
+	}
+	_, err, _ = g.Do(GetMD5LOWER(sqlStr), fn)
+	if err != nil {
+		err = errors.WithStack(err)
+	}
+	return
 }
