@@ -63,13 +63,7 @@ func AddTemplateByFS(fsys fs.FS, root string, namespaceSuffix string, funcMap te
 	}
 	for _, filename := range allFileList {
 		namespace := FileName2Namespace(filename, root)
-		finfo, err := fsys.Open(filename)
-		if err != nil {
-			err = errors.WithStack(err)
-			return nil, err
-		}
-		var b []byte
-		_, err = finfo.Read(b)
+		b, err := fs.ReadFile(fsys, filename)
 		if err != nil {
 			err = errors.WithStack(err)
 			return nil, err
