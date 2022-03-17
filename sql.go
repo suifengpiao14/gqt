@@ -210,6 +210,7 @@ func getNamedData(data interface{}) (out map[string]interface{}, err error) {
 	}
 	if mapOut, ok := data.(DataVolumeMap); ok {
 		out = mapOut
+		return
 	}
 
 	// dataVolume, err := Convert2DataVolume(data)
@@ -222,16 +223,19 @@ func getNamedData(data interface{}) (out map[string]interface{}, err error) {
 	if v.Kind() != reflect.Struct {
 		return
 	}
+	vt := v.Type()
 	// 提取结构体field字段
 	fieldNum := v.NumField()
 	for i := 0; i < fieldNum; i++ {
 		fv := v.Field(i)
-		fname := fv.Type().Name()
+		ft := fv.Type()
+		fname := vt.Field(i).Name
 		if fv.Kind() == reflect.Ptr {
 			fv = fv.Elem()
+			ft = fv.Type()
 		}
-		ft := fv.Type()
-		switch ft.Kind() {
+		ftk := ft.Kind()
+		switch ftk {
 		case reflect.Int:
 			out[fname] = fv.Int()
 		case reflect.Int64:
