@@ -28,16 +28,30 @@ func init() {
 	repo = NewRepositorySQL()
 }
 
+type ListEntity struct {
+	IDS []int
+	DataVolumeMap
+}
+
+func (t *ListEntity) TplName() string {
+	return "sql.list"
+}
+
 func TestSubDefineWhere(t *testing.T) {
 	err := repo.AddByDir(testDir, TemplatefuncMap)
 	if err != nil {
 		panic(err)
 	}
-	sql, err := repo.GetSQL("sql.list", nil)
+
+	entity := &ListEntity{
+		IDS:           []int{1, 2, 3},
+		DataVolumeMap: DataVolumeMap{},
+	}
+	sql, err := repo.GetSQLByTplEntity(entity)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Sprintln(sql)
+	fmt.Println(sql)
 }
 
 func TestStruct(t *testing.T) {

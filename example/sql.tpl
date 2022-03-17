@@ -1,6 +1,6 @@
 
 {{define "where"}}
- and `name`="test"
+ and `name`in ({{in . .IDS}})
 {{end}}
 
 {{define "list"}}

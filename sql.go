@@ -208,10 +208,14 @@ func getNamedData(data interface{}) (out map[string]interface{}, err error) {
 		out = mapOut
 		return
 	}
-	dataVolume, err := Convert2DataVolume(data)
-	if err != nil {
-		return
+	if mapOut, ok := data.(DataVolumeMap); ok {
+		out = mapOut
 	}
+
+	// dataVolume, err := Convert2DataVolume(data)
+	// if err != nil {
+	// 	return
+	// }
 
 	v := reflect.Indirect(reflect.ValueOf(data))
 
@@ -236,14 +240,25 @@ func getNamedData(data interface{}) (out map[string]interface{}, err error) {
 			out[fname] = fv.Float()
 		case reflect.String:
 			out[fname] = fv.String()
+		case reflect.Struct, reflect.Map:
+			subOut, err := getNamedData(fv.Interface())
+			if err != nil {
+				return out, err
+			}
+			for k, v := range subOut {
+				if _, ok := out[k]; !ok {
+					out[k] = v
+				}
+			}
+
 		default:
 			out[fname] = fv.Interface()
 		}
 	}
-	// 模板中动态数据增加/覆盖
-	dynamicData := dataVolume.GetDynamicValus()
-	for key, val := range dynamicData {
-		out[key] = val
-	}
+	// // 模板中动态数据增加/覆盖
+	// dynamicData := dataVolume.GetDynamicValus()
+	// for key, val := range dynamicData {
+	// 	out[key] = val
+	// }
 	return
 }
