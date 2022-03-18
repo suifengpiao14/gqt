@@ -44,20 +44,20 @@ func (v *DataVolumeMap) init() {
 	}
 }
 
-func (v DataVolumeMap) SetValue(key string, value interface{}) {
+func (v *DataVolumeMap) SetValue(key string, value interface{}) {
 	v.init()
-	(v)[key] = value // todo 并发lock
+	(*v)[key] = value // todo 并发lock
 }
 
-func (v DataVolumeMap) GetValue(key string) (value interface{}, ok bool) {
+func (v *DataVolumeMap) GetValue(key string) (value interface{}, ok bool) {
 	v.init()
-	value, ok = (v)[key]
+	value, ok = (*v)[key]
 	return
 }
 
-func (v DataVolumeMap) GetDynamicValus() (values map[string]interface{}) {
+func (v *DataVolumeMap) GetDynamicValus() (values map[string]interface{}) {
 	v.init()
-	return v
+	return *v
 }
 
 // RepositoryTemplate stores  templates.
