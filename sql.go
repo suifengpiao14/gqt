@@ -36,10 +36,6 @@ type SQLRow struct {
 	Result    interface{}
 }
 
-type TplEntity interface {
-	TplName() string
-}
-
 func (r *RepositorySQL) AddByDir(root string, funcMap template.FuncMap) (err error) {
 	r.templates, err = gqttpl.AddTemplateByDir(root, gqttpl.SQLNamespaceSuffix, funcMap, LeftDelim, RightDelim)
 	if err != nil {
@@ -159,12 +155,12 @@ func (r *RepositorySQL) GetDDLSQL() (ddlSQLRowList []*SQLRow, err error) {
 }
 
 // 将模板名称，模板中的变量，封装到结构体中，使用结构体访问，避免拼写错误以及分散的硬编码，可以配合 gqttool 自动生成响应的结构体
-func (r *RepositorySQL) GetSQLByTplEntity(t TplEntity) (sqlRow *SQLRow, err error) {
+func (r *RepositorySQL) GetSQLByTplEntity(t gqttpl.TplEntityInterface) (sqlRow *SQLRow, err error) {
 	return r.GetSQL(t.TplName(), t)
 }
 
 // GetSQLByTplEntityRef 支持只返回error 函数签名
-func (r *RepositorySQL) GetSQLRawByTplEntityRef(t TplEntity, sqlStr *string) (err error) {
+func (r *RepositorySQL) GetSQLRawByTplEntityRef(t gqttpl.TplEntityInterface, sqlStr *string) (err error) {
 	sqlRow, err := r.GetSQL(t.TplName(), t)
 	if err != nil {
 		return err
@@ -208,15 +204,10 @@ func getNamedData(data interface{}) (out map[string]interface{}, err error) {
 		out = mapOut
 		return
 	}
-	if mapOut, ok := data.(DataVolumeMap); ok {
+	if mapOut, ok := data.(gqttpl.DataVolumeMap); ok {
 		out = mapOut
 		return
 	}
-
-	// dataVolume, err := Convert2DataVolume(data)
-	// if err != nil {
-	// 	return
-	// }
 
 	v := reflect.Indirect(reflect.ValueOf(data))
 
@@ -259,10 +250,5 @@ func getNamedData(data interface{}) (out map[string]interface{}, err error) {
 			out[fname] = fv.Interface()
 		}
 	}
-	// // 模板中动态数据增加/覆盖
-	// dynamicData := dataVolume.GetDynamicValus()
-	// for key, val := range dynamicData {
-	// 	out[key] = val
-	// }
 	return
 }

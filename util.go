@@ -6,6 +6,7 @@ import (
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
+	"github.com/suifengpiao14/gqt/v2/gqttpl"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -16,7 +17,7 @@ func GetMD5LOWER(s string) string {
 }
 
 // Model2Entity copy model to entity ,some times input used to insert and update ,in this case input mybe model, copy model value to insertEntity and updateEntity
-func Model2TplEntity(from interface{}, to TplEntity) {
+func Model2TplEntity(from interface{}, to gqttpl.TplEntityInterface) {
 	err := copier.Copy(to, from)
 	if err != nil {
 		panic(err)

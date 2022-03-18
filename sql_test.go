@@ -13,6 +13,7 @@ import (
 	"unsafe"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/suifengpiao14/gqt/v2/gqttpl"
 )
 
 var testDir string
@@ -30,7 +31,7 @@ func init() {
 
 type ListEntity struct {
 	IDS []int
-	DataVolumeMap
+	gqttpl.DataVolumeMap
 }
 
 func (t *ListEntity) TplName() string {
@@ -45,7 +46,7 @@ func TestSubDefineWhere(t *testing.T) {
 
 	entity := &ListEntity{
 		IDS:           []int{1, 2, 3},
-		DataVolumeMap: DataVolumeMap{},
+		DataVolumeMap: gqttpl.DataVolumeMap{},
 	}
 	sql, err := repo.GetSQLByTplEntity(entity)
 	if err != nil {
@@ -185,7 +186,7 @@ func TestSQLInMap(t *testing.T) {
 type DataVolumeTest struct {
 	Hello string
 	IDS   []int
-	DataVolumeMap
+	gqttpl.DataVolumeMap
 }
 
 func TestSQLInDataVolume(t *testing.T) {

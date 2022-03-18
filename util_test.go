@@ -3,6 +3,8 @@ package gqt
 import (
 	"fmt"
 	"testing"
+
+	"github.com/suifengpiao14/gqt/v2/gqttpl"
 )
 
 type ExampleModel struct {
@@ -23,6 +25,7 @@ type ExampleEntity struct {
 	ExampleID string
 	ServiceID int
 	Request   bool
+	gqttpl.DataVolumeMap
 }
 
 func (e *ExampleEntity) TplName() string {

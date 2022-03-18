@@ -24,38 +24,7 @@ var TemplatefuncMap = template.FuncMap{
 	"snakeCase":     gqttpl.SnakeCase,
 }
 
-// DataVolumeInterface 如果模板中需要新增、修改数据，作为 sql prepared statement 值，则传递给模板的数据变量必须实现DataVolumeInterface接口
-type DataVolumeInterface interface {
-	SetValue(key string, value interface{})
-	GetValue(key string) (value interface{}, ok bool)
-	GetDynamicValus() (values map[string]interface{})
-}
-
-type DataVolumeMap map[string]interface{}
-
-func (v *DataVolumeMap) init() {
-	if *v == nil {
-		*v = make(map[string]interface{})
-	}
-}
-
-func (v *DataVolumeMap) SetValue(key string, value interface{}) {
-	v.init()
-	(*v)[key] = value // todo 并发lock
-}
-
-func (v *DataVolumeMap) GetValue(key string) (value interface{}, ok bool) {
-	v.init()
-	value, ok = (*v)[key]
-	return
-}
-
-func (v *DataVolumeMap) GetDynamicValus() (values map[string]interface{}) {
-	v.init()
-	return *v
-}
-
-func Convert2DataVolume(data interface{}) (dataVolume DataVolumeInterface, err error) {
+func Convert2DataVolume(data interface{}) (dataVolume gqttpl.DataVolumeInterface, err error) {
 	for {
 		dataI, ok := data.(*interface{})
 		if ok {
@@ -66,19 +35,19 @@ func Convert2DataVolume(data interface{}) (dataVolume DataVolumeInterface, err e
 		}
 	}
 	if dataMap, ok := data.(map[string]interface{}); ok {
-		datavolumeMap := DataVolumeMap(dataMap)
+		datavolumeMap := gqttpl.DataVolumeMap(dataMap)
 		dataVolume = &datavolumeMap
 		return
 	}
 	if dataMap, ok := data.(*map[string]interface{}); ok {
-		a := DataVolumeMap(*dataMap)
+		a := gqttpl.DataVolumeMap(*dataMap)
 		dataVolume = &a
-		p := (*DataVolumeMap)(unsafe.Pointer(&dataMap))
+		p := (*gqttpl.DataVolumeMap)(unsafe.Pointer(&dataMap))
 		data = p
 		return
 	}
 
-	dataVolume, ok := data.(DataVolumeInterface)
+	dataVolume, ok := data.(gqttpl.DataVolumeInterface)
 	if !ok {
 		err = errors.Errorf("expected implement interface gqt.DataVolume ; got %#v ", data)
 		return nil, err

@@ -3,11 +3,13 @@ package gqt
 import (
 	"fmt"
 	"testing"
+
+	"github.com/suifengpiao14/gqt/v2/gqttpl"
 )
 
 type Entity struct {
 	Hello string
-	DataVolumeMap
+	gqttpl.DataVolumeMap
 }
 
 func TestConvert2DataVolume(t *testing.T) {
@@ -31,7 +33,7 @@ func TestConvertMap(t *testing.T) {
 		"a": 1,
 	}
 	interfac := interface{}(dataMap)
-	a := DataVolumeMap(dataMap)
+	a := gqttpl.DataVolumeMap(dataMap)
 	fmt.Printf("%#v----%#v", a, interfac)
 
 }

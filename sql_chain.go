@@ -1,6 +1,9 @@
 package gqt
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+	"github.com/suifengpiao14/gqt/v2/gqttpl"
+)
 
 type SQLChain struct {
 	sqlRows       []*SQLRow
@@ -33,7 +36,7 @@ func (s *SQLChain) ParseSQL(tplName string, args interface{}, result interface{}
 	return s
 }
 
-func (s *SQLChain) ParseTpEntity(entity TplEntity, result interface{}) *SQLChain {
+func (s *SQLChain) ParseTpEntity(entity gqttpl.TplEntityInterface, result interface{}) *SQLChain {
 	if s.sqlRepository == nil {
 		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
 	}

@@ -21,6 +21,45 @@ var ConfigNamespaceSuffix = "config"
 var MetaNamespaceSuffix = "meta"
 var CURLNamespaceSuffix = "curl"
 
+// DataVolumeInterface 如果模板中需要新增、修改数据，作为 sql prepared statement 值，则传递给模板的数据变量必须实现DataVolumeInterface接口
+type DataVolumeInterface interface {
+	SetValue(key string, value interface{})
+	GetValue(key string) (value interface{}, ok bool)
+	GetDynamicValus() (values map[string]interface{})
+}
+
+// TplEntityInterface 模板参数对象，由于sql、curl经常需要在模板中增加数据，所以直接在模板输入实体接口融合DataVolumeInterface 接口功能，实体包含隐藏字段类型DataVolumeMap，即可实现DataVolumeInterface 功能
+type TplEntityInterface interface {
+	TplName() string
+	SetValue(key string, value interface{})
+	GetValue(key string) (value interface{}, ok bool)
+	GetDynamicValus() (values map[string]interface{})
+}
+
+type DataVolumeMap map[string]interface{}
+
+func (v *DataVolumeMap) init() {
+	if *v == nil {
+		*v = make(map[string]interface{})
+	}
+}
+
+func (v *DataVolumeMap) SetValue(key string, value interface{}) {
+	v.init()
+	(*v)[key] = value // todo 并发lock
+}
+
+func (v *DataVolumeMap) GetValue(key string) (value interface{}, ok bool) {
+	v.init()
+	value, ok = (*v)[key]
+	return
+}
+
+func (v *DataVolumeMap) GetDynamicValus() (values map[string]interface{}) {
+	v.init()
+	return *v
+}
+
 // RepositoryTemplate stores  templates.
 type RepositoryTemplate struct {
 	templates map[string]*template.Template // namespace: template
@@ -124,6 +163,10 @@ func SplitFullname(fullname string) (namespace string, name string) {
 	name = fullname[lastIndex+1:]
 	return
 }
+func SpellFullname(namespace string, name string) (fullname string) {
+	fullname = fmt.Sprintf("%s.%s", namespace, name)
+	return
+}
 
 // ExecuteNamespaceTemplate execute all template under namespace
 func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespace string, data interface{}) (tplDefineList []*TPLDefine, err error) {
@@ -181,7 +224,25 @@ func ExecuteTemplate(templateMap map[string]*template.Template, fullname string,
 	if err != nil {
 		return nil, err
 	}
+	return
+}
 
+//ExecuteTemplateTry 找不到模板的时候，返回null，不报错(curl 模板需要先执行xxxBody_模板)
+func ExecuteTemplateTry(templateMap map[string]*template.Template, fullname string, data interface{}) (tplDefine *TPLDefine, err error) {
+	namespace, name := SplitFullname(fullname)
+	t, ok := templateMap[namespace]
+	if !ok {
+		err = errors.Errorf("not found namespace:%s", namespace)
+		return nil, err
+	}
+	tpl := t.Lookup(name)
+	if tpl == nil {
+		return
+	}
+	tplDefine, err = execTpl(tpl, namespace, data)
+	if err != nil {
+		return nil, err
+	}
 	return
 }
 
