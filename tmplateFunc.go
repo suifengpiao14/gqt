@@ -23,6 +23,7 @@ var TemplatefuncMap = template.FuncMap{
 	"snakeCase":     gqttpl.SnakeCase,
 }
 
+// Convert2DataVolume 确保一定传入的是地址引用
 func Convert2DataVolume(data interface{}) (dataVolume gqttpl.DataVolumeInterface, err error) {
 
 	dataVolume, ok := gqttpl.Interface2DataVolume(data)

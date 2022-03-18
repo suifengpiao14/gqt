@@ -198,7 +198,7 @@ func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespa
 
 func execTpl(tpl *template.Template, namespace string, data interface{}) (tplDefine *TPLDefine, err error) {
 	var b bytes.Buffer
-	err = tpl.Execute(&b, &data) // may adding more args with template func
+	err = tpl.Execute(&b, &data) // 此处使用引用地址，方便在模板中增加数据，返回到data中
 	if err != nil {
 		err = errors.WithStack(err)
 		return
@@ -343,12 +343,8 @@ func Glob(fsys fs.FS, pattern string) ([]string, error) {
 
 //Interface2DataVolume convert interface to DataVolumeInterface
 func Interface2DataVolume(input interface{}) (out DataVolumeInterface, ok bool) {
-	for {
-		if inputI, ok := input.(*interface{}); ok {
-			input = *inputI
-		} else {
-			break
-		}
+	if inputI, ok := input.(*interface{}); ok {
+		input = *inputI
 	}
 
 	if inputMap, ok := input.(map[string]interface{}); ok {
@@ -365,26 +361,26 @@ func Interface2DataVolume(input interface{}) (out DataVolumeInterface, ok bool) 
 	}
 
 	if out, ok := input.(DataVolumeInterface); ok {
+
 		v := reflect.Indirect(reflect.ValueOf(out))
 		t := v.Type()
-		tk := t.Kind()
-		if tk == reflect.Map {
-			return out, ok
-		}
-		defaultDataVolumeMap := &DataVolumeMap{}
-		targetType := reflect.TypeOf(defaultDataVolumeMap)
-		switch t.Kind() {
-		case reflect.Struct:
+		if t.Kind() == reflect.Struct {
+			defaultDataVolumeMap := &DataVolumeMap{}
+			targetType := reflect.TypeOf(defaultDataVolumeMap)
 			n := t.NumField()
 			for i := 0; i < n; i++ {
 				fv := v.Field(i)
 				ft := fv.Type()
 				if ft == targetType && fv.IsValid() && fv.IsNil() {
-					fv.Set(reflect.ValueOf(defaultDataVolumeMap)) //解决结构体无名称方式引用 *DataVolumeMap ,实例化时，并没有实力该字段，导致地址为空
+
+					if fv.CanSet() {
+						//fv.Set(reflect.ValueOf((defaultDataVolumeMap))) //解决结构体无名称方式引用 *DataVolumeMap ,实例化时，并没有实力该字段，导致地址为空,解决测试用例data33 填充值问题
+					} else {
+						fname := t.Field(i).Name // todo data32 panic
+						fmt.Println(fname)
+					}
 				}
 			}
-		default:
-			return out, ok
 		}
 		return out, ok
 	}
