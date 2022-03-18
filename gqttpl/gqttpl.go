@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"text/template"
+	"unsafe"
 
 	"github.com/pkg/errors"
 	"goa.design/goa/v3/codegen"
@@ -39,8 +41,12 @@ type TplEntityInterface interface {
 type DataVolumeMap map[string]interface{}
 
 func (v *DataVolumeMap) init() {
+	if v == nil {
+		err := errors.Errorf("*DataVolumMap must init")
+		panic(err)
+	}
 	if *v == nil {
-		*v = make(map[string]interface{})
+		*v = DataVolumeMap{}
 	}
 }
 
@@ -344,6 +350,43 @@ func Interface2DataVolume(input interface{}) (out DataVolumeInterface, ok bool) 
 			break
 		}
 	}
-	out, ok = input.(DataVolumeInterface)
+
+	if inputMap, ok := input.(map[string]interface{}); ok {
+		inputvolumeMap := DataVolumeMap(inputMap)
+		out = &inputvolumeMap
+		return out, ok
+	}
+	if inputMap, ok := input.(*map[string]interface{}); ok { // 同时更新input 内的对象，使得input、out指向同一个地址
+		a := DataVolumeMap(*inputMap)
+		out = &a
+		p := (*DataVolumeMap)(unsafe.Pointer(&inputMap))
+		input = p
+		return out, ok
+	}
+
+	if out, ok := input.(DataVolumeInterface); ok {
+		v := reflect.Indirect(reflect.ValueOf(out))
+		t := v.Type()
+		tk := t.Kind()
+		if tk == reflect.Map {
+			return out, ok
+		}
+		defaultDataVolumeMap := &DataVolumeMap{}
+		targetType := reflect.TypeOf(defaultDataVolumeMap)
+		switch t.Kind() {
+		case reflect.Struct:
+			n := t.NumField()
+			for i := 0; i < n; i++ {
+				fv := v.Field(i)
+				ft := fv.Type()
+				if ft == targetType && fv.IsValid() && fv.IsNil() {
+					fv.Set(reflect.ValueOf(defaultDataVolumeMap)) //解决结构体无名称方式引用 *DataVolumeMap ,实例化时，并没有实力该字段，导致地址为空
+				}
+			}
+		default:
+			return out, ok
+		}
+		return out, ok
+	}
 	return
 }

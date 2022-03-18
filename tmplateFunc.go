@@ -6,7 +6,6 @@ import (
 	"strings"
 	"text/template"
 	"time"
-	"unsafe"
 
 	"github.com/pkg/errors"
 	"github.com/suifengpiao14/gqt/v2/gqttpl"
@@ -25,29 +24,8 @@ var TemplatefuncMap = template.FuncMap{
 }
 
 func Convert2DataVolume(data interface{}) (dataVolume gqttpl.DataVolumeInterface, err error) {
-	for {
-		dataI, ok := data.(*interface{})
-		if ok {
-			data = *dataI
 
-		} else {
-			break
-		}
-	}
-	if dataMap, ok := data.(map[string]interface{}); ok {
-		datavolumeMap := gqttpl.DataVolumeMap(dataMap)
-		dataVolume = &datavolumeMap
-		return
-	}
-	if dataMap, ok := data.(*map[string]interface{}); ok {
-		a := gqttpl.DataVolumeMap(*dataMap)
-		dataVolume = &a
-		p := (*gqttpl.DataVolumeMap)(unsafe.Pointer(&dataMap))
-		data = p
-		return
-	}
-
-	dataVolume, ok := data.(gqttpl.DataVolumeInterface)
+	dataVolume, ok := gqttpl.Interface2DataVolume(data)
 	if !ok {
 		err = errors.Errorf("expected implement interface gqt.DataVolume ; got %#v ", data)
 		return nil, err
