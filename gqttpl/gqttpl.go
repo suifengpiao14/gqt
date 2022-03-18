@@ -155,7 +155,6 @@ func execTpl(tpl *template.Template, namespace string, data interface{}) (tplDef
 		return
 	}
 	out := b.String()
-	out = strings.Trim(out, "\r\n\t\v\f ")
 	tplDefine = &TPLDefine{
 		Name:      tpl.Name(),
 		Namespace: namespace,
