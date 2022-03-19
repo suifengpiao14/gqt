@@ -64,28 +64,27 @@ func TestInterface2DataVolume(t *testing.T) {
 		ID: "data31",
 	}
 	data32 := DataVolumeMapStructRef{
-		ID:            "data32",
-		DataVolumeMap: &DataVolumeMap{},
+		ID: "data32",
 	}
 	data33 := &DataVolumeMapStruct{
 		ID: "data33",
 	}
 	data34 := &DataVolumeMapStructRef{
-		ID:            "data34",
-		DataVolumeMap: &DataVolumeMap{},
+		ID: "data34",
 	}
 	data := []interface{}{data11, data12, data21, data22, data31, data32, data33, data34}
 	for _, d := range data {
-		dataVolume, ok := Interface2DataVolume(d)
+		di := interface{}(d)
+		dataVolume, ok := Interface2DataVolume(&di)
 		if ok {
-			fmt.Printf("ok-%#v---", d)
 			dataVolume.SetValue("hello", "world")
 			dv, _ := d.(DataVolumeInterface)
 			if dv != nil {
 				hello, _ := dv.GetValue("hello")
-				fmt.Println(hello)
+				fmt.Print(hello)
+				fmt.Printf("--dv--%#v", d)
 			} else {
-				fmt.Printf("is nil--")
+				fmt.Printf("%#v", d)
 			}
 
 		} else {
@@ -96,7 +95,8 @@ func TestInterface2DataVolume(t *testing.T) {
 
 }
 
-func TestInterface2DataVolumeSpec(t *testing.T) {
+//TestInterface2DataVolumeDataVolumeMap 测试 传入 VolumeDataVolumeMap 类型
+func TestInterface2DataVolumeDataVolumeMap(t *testing.T) {
 	d := DataVolumeMap{
 		"ID": "data12",
 	}
@@ -111,8 +111,42 @@ func TestInterface2DataVolumeSpec(t *testing.T) {
 	}
 }
 
-func TestInterface2DataVolumeSpec32(t *testing.T) {
-	d := &DataVolumeMapStructRef{
+// TestInterface2DataVolumeMap 测试传入 map[string]interface{}类型
+func TestInterface2DataVolumeMap(t *testing.T) {
+	d := map[string]interface{}{
+		"ID": "data12",
+	}
+
+	dataVolume, ok := Interface2DataVolume(d)
+	if !ok {
+		fmt.Printf("no-%#v\n", d)
+	} else {
+		dataVolume.SetValue("hello", "world")
+		fmt.Printf("ok-%#v\n", d)
+	}
+}
+
+//TestInterface2DataVolumeStruct 测试传入 struct 类型
+func TestInterface2DataVolumeStruct(t *testing.T) {
+	d := &DataVolumeMapStruct{
+		ID: "data31",
+	}
+	dataVolume, ok := Interface2DataVolume(d)
+	if !ok {
+		fmt.Printf("no-%#v\n", d)
+	} else {
+
+		dataVolume.SetValue("hello", "world")
+		fmt.Printf("ok-%#v\n", d)
+		hello, _ := d.GetValue("hello")
+		fmt.Println(hello)
+	}
+	d.SetValue("a", "b")
+	fmt.Printf("ok-%#v\n", d)
+}
+
+func TestInterface2DataVolumeStructRef(t *testing.T) {
+	d := DataVolumeMapStructRef{
 		ID: "data32",
 	}
 	dataVolume, ok := Interface2DataVolume(d)

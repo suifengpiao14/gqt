@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
-	"unsafe"
 
 	"github.com/pkg/errors"
 	"goa.design/goa/v3/codegen"
@@ -46,7 +45,7 @@ func (v *DataVolumeMap) init() {
 		panic(err)
 	}
 	if *v == nil {
-		*v = DataVolumeMap{}
+		*v = DataVolumeMap{} // 解决 data33 情况
 	}
 }
 
@@ -341,10 +340,18 @@ func Glob(fsys fs.FS, pattern string) ([]string, error) {
 	return matches, nil
 }
 
-//Interface2DataVolume convert interface to DataVolumeInterface
+//Interface2DataVolume convert interface to DataVolumeInterface 核心思路：使得 input 和 out 指向同一个内存地址
 func Interface2DataVolume(input interface{}) (out DataVolumeInterface, ok bool) {
 	if inputI, ok := input.(*interface{}); ok {
 		input = *inputI
+	}
+	if datavolume, ok := input.(DataVolumeMap); ok {
+		out = &datavolume
+		return out, ok
+	}
+	if dataVolumeMapRef, ok := input.(*DataVolumeMap); ok {
+		out = dataVolumeMapRef
+		return out, ok
 	}
 
 	if inputMap, ok := input.(map[string]interface{}); ok {
@@ -352,11 +359,9 @@ func Interface2DataVolume(input interface{}) (out DataVolumeInterface, ok bool) 
 		out = &inputvolumeMap
 		return out, ok
 	}
-	if inputMap, ok := input.(*map[string]interface{}); ok { // 同时更新input 内的对象，使得input、out指向同一个地址
-		a := DataVolumeMap(*inputMap)
-		out = &a
-		p := (*DataVolumeMap)(unsafe.Pointer(&inputMap))
-		input = p
+	if inputMap, ok := input.(*map[string]interface{}); ok { // 同时更新input 内的对象，使得input、out指向同一个地址 data21
+		tmp := DataVolumeMap(*inputMap)
+		out = &tmp
 		return out, ok
 	}
 
@@ -372,12 +377,10 @@ func Interface2DataVolume(input interface{}) (out DataVolumeInterface, ok bool) 
 				fv := v.Field(i)
 				ft := fv.Type()
 				if ft == targetType && fv.IsValid() && fv.IsNil() {
-
 					if fv.CanSet() {
-						//fv.Set(reflect.ValueOf((defaultDataVolumeMap))) //解决结构体无名称方式引用 *DataVolumeMap ,实例化时，并没有实力该字段，导致地址为空,解决测试用例data33 填充值问题
+						fv.Set(reflect.ValueOf((defaultDataVolumeMap))) //解决结构体无名称方式引用 *DataVolumeMap ,实例化时，并没有实力该字段，导致地址为空,解决测试用例data34 填充值问题
 					} else {
-						fname := t.Field(i).Name // todo data32 panic
-						fmt.Println(fname)
+						// todo resolve data32 panic
 					}
 				}
 			}
