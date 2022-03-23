@@ -28,18 +28,14 @@ func Convert2DataVolume(data interface{}) (dataVolume gqttpl.DataVolumeInterface
 
 	dataVolume, ok := gqttpl.Interface2DataVolume(data)
 	if !ok {
-		err = errors.Errorf("expected implement interface gqt.DataVolume ; got %#v ", data)
+		err = errors.Errorf("expected implement interface gqt.DataVolumeInterface ; got %#v ", data)
 		return nil, err
 	}
 
 	return
 }
 
-func ZeroTime(data interface{}) (string, error) {
-	dataVolume, err := Convert2DataVolume(data)
-	if err != nil {
-		return "", err
-	}
+func ZeroTime(dataVolume gqttpl.DataVolumeInterface) (string, error) {
 	named := "ZeroTime"
 	placeholder := ":" + named
 	value := "0000-00-00 00:00:00"
@@ -47,11 +43,7 @@ func ZeroTime(data interface{}) (string, error) {
 	return placeholder, nil
 }
 
-func CurrentTime(data interface{}) (string, error) {
-	dataVolume, err := Convert2DataVolume(data)
-	if err != nil {
-		return "", err
-	}
+func CurrentTime(dataVolume gqttpl.DataVolumeInterface) (string, error) {
 	named := "CurrentTime"
 	placeholder := ":" + named
 	value := time.Now().Format("2006-01-02 15:04:05")
@@ -59,11 +51,7 @@ func CurrentTime(data interface{}) (string, error) {
 	return placeholder, nil
 }
 
-func PermanentTime(data interface{}) (string, error) {
-	dataVolume, err := Convert2DataVolume(data)
-	if err != nil {
-		return "", err
-	}
+func PermanentTime(dataVolume gqttpl.DataVolumeInterface) (string, error) {
 	named := "PermanentTime"
 	placeholder := ":" + named
 	value := "3000-12-31 23:59:59"
@@ -85,11 +73,7 @@ func (c *preComma) PreComma() string {
 	return out
 }
 
-func In(obj interface{}, data interface{}) (str string, err error) {
-	dataVolume, err := Convert2DataVolume(obj)
-	if err != nil {
-		return "", err
-	}
+func In(dataVolume gqttpl.DataVolumeInterface, data interface{}) (str string, err error) {
 	placeholders := make([]string, 0)
 	inIndexKey := "InIndex_"
 	inIndex := 0

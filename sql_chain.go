@@ -20,7 +20,7 @@ func NewSQLChain(sqlRepository func() *RepositorySQL) (s *SQLChain) {
 	return
 }
 
-func (s *SQLChain) ParseSQL(tplName string, args interface{}, result interface{}) *SQLChain {
+func (s *SQLChain) ParseSQL(tplName string, args gqttpl.DataVolumeInterface, result interface{}) *SQLChain {
 	if s.sqlRepository == nil {
 		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
 	}

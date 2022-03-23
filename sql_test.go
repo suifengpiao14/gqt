@@ -37,6 +37,9 @@ type ListEntity struct {
 func (t *ListEntity) TplName() string {
 	return "sql.list"
 }
+func (t *ListEntity) TplOutput() (string, error) {
+	return "sql.list", nil
+}
 
 func TestSubDefineWhere(t *testing.T) {
 	err := repo.AddByDir(testDir, TemplatefuncMap)
@@ -66,6 +69,7 @@ func TestStruct(t *testing.T) {
 	type structData struct {
 		APIID int
 		Ids   string
+		*gqttpl.DataVolumeMap
 	}
 
 	data := &structData{
@@ -91,7 +95,8 @@ func TestMap(t *testing.T) {
 	data := make(map[string]interface{})
 	data["APIID"] = 1
 	data["Ids"] = "1,2,4"
-	sql, err := repo.GetSQL("parameter.getAllByAPIID", data)
+	dataVolume := gqttpl.DataVolumeMap(data)
+	sql, err := repo.GetSQL("parameter.getAllByAPIID", &dataVolume)
 	if err != nil {
 		panic(err)
 	}
@@ -176,7 +181,8 @@ func TestSQLInMap(t *testing.T) {
 	data := map[string]interface{}{
 		"IDS": []int{1, 3, 4},
 	}
-	sqlrow, err := repo.GetSQL("test.testIn", data)
+	dataVolume := gqttpl.DataVolumeMap(data)
+	sqlrow, err := repo.GetSQL("test.testIn", &dataVolume)
 	if err != nil {
 		panic(err)
 	}

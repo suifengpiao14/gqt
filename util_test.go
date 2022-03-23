@@ -31,6 +31,9 @@ type ExampleEntity struct {
 func (e *ExampleEntity) TplName() string {
 	return "example"
 }
+func (e *ExampleEntity) TplOutput() (string, error) {
+	return "tpl exec output", nil
+}
 
 func TestModel2Entity(t *testing.T) {
 	from := &ExampleModel{
