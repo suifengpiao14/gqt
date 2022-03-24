@@ -9,13 +9,13 @@ import (
 
 type Entity struct {
 	Hello string
-	gqttpl.DataVolumeMap
+	gqttpl.TplEmptyEntity
 }
 
-func TestConvert2DataVolume(t *testing.T) {
+func TestConvert2tplEntity(t *testing.T) {
 	entity := &Entity{}
 
-	volume, err := Convert2DataVolume(entity)
+	volume, err := Convert2tplEntity(entity)
 
 	if err != nil {
 		panic(err)
@@ -33,7 +33,7 @@ func TestConvertMap(t *testing.T) {
 		"a": 1,
 	}
 	interfac := interface{}(dataMap)
-	a := gqttpl.DataVolumeMap(dataMap)
+	a := gqttpl.TplEmptyEntity(dataMap)
 	fmt.Printf("%#v----%#v", a, interfac)
 
 }

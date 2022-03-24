@@ -23,39 +23,39 @@ var TemplatefuncMap = template.FuncMap{
 	"snakeCase":     gqttpl.SnakeCase,
 }
 
-// Convert2DataVolume 确保一定传入的是地址引用
-func Convert2DataVolume(data interface{}) (dataVolume gqttpl.DataVolumeInterface, err error) {
+// Convert2tplEntity 确保一定传入的是地址引用
+func Convert2tplEntity(data interface{}) (tplEntity gqttpl.TplEntityInterface, err error) {
 
-	dataVolume, ok := gqttpl.Interface2DataVolume(data)
+	tplEntity, ok := gqttpl.Interface2tplEntity(data)
 	if !ok {
-		err = errors.Errorf("expected implement interface gqt.DataVolumeInterface ; got %#v ", data)
+		err = errors.Errorf("expected implement interface gqt.tplEntityInterface ; got %#v ", data)
 		return nil, err
 	}
 
 	return
 }
 
-func ZeroTime(dataVolume gqttpl.DataVolumeInterface) (string, error) {
+func ZeroTime(tplEntity gqttpl.TplEntityInterface) (string, error) {
 	named := "ZeroTime"
 	placeholder := ":" + named
 	value := "0000-00-00 00:00:00"
-	dataVolume.SetValue(named, value)
+	tplEntity.SetValue(named, value)
 	return placeholder, nil
 }
 
-func CurrentTime(dataVolume gqttpl.DataVolumeInterface) (string, error) {
+func CurrentTime(tplEntity gqttpl.TplEntityInterface) (string, error) {
 	named := "CurrentTime"
 	placeholder := ":" + named
 	value := time.Now().Format("2006-01-02 15:04:05")
-	dataVolume.SetValue(named, value)
+	tplEntity.SetValue(named, value)
 	return placeholder, nil
 }
 
-func PermanentTime(dataVolume gqttpl.DataVolumeInterface) (string, error) {
+func PermanentTime(tplEntity gqttpl.TplEntityInterface) (string, error) {
 	named := "PermanentTime"
 	placeholder := ":" + named
 	value := "3000-12-31 23:59:59"
-	dataVolume.SetValue(named, value)
+	tplEntity.SetValue(named, value)
 	return placeholder, nil
 }
 
@@ -73,11 +73,11 @@ func (c *preComma) PreComma() string {
 	return out
 }
 
-func In(dataVolume gqttpl.DataVolumeInterface, data interface{}) (str string, err error) {
+func In(tplEntity gqttpl.TplEntityInterface, data interface{}) (str string, err error) {
 	placeholders := make([]string, 0)
 	inIndexKey := "InIndex_"
 	inIndex := 0
-	inIndexInterface, _ := dataVolume.GetValue(inIndexKey)
+	inIndexInterface, _ := tplEntity.GetValue(inIndexKey)
 	if inIndexInterface != nil {
 		inIndexInt, ok := inIndexInterface.(int)
 		if ok {
@@ -95,7 +95,7 @@ func In(dataVolume gqttpl.DataVolumeInterface, data interface{}) (str string, er
 			named := fmt.Sprintf("in_%d", inIndex)
 			placeholder := ":" + named
 			placeholders = append(placeholders, placeholder)
-			dataVolume.SetValue(named, v.Index(i).Interface())
+			tplEntity.SetValue(named, v.Index(i).Interface())
 		}
 
 	case reflect.String:
@@ -106,7 +106,7 @@ func In(dataVolume gqttpl.DataVolumeInterface, data interface{}) (str string, er
 			named := fmt.Sprintf("in_%d", inIndex)
 			placeholder := ":" + named
 			placeholders = append(placeholders, placeholder)
-			dataVolume.SetValue(named, arr[i])
+			tplEntity.SetValue(named, arr[i])
 		}
 	default:
 		err = fmt.Errorf("want slice/array/string ,have %s", v.Kind().String())
@@ -114,7 +114,7 @@ func In(dataVolume gqttpl.DataVolumeInterface, data interface{}) (str string, er
 			return "", err
 		}
 	}
-	dataVolume.SetValue(inIndexKey, inIndex) // 更新InIndex_
+	tplEntity.SetValue(inIndexKey, inIndex) // 更新InIndex_
 	str = strings.Join(placeholders, ",")
 	return str, nil
 

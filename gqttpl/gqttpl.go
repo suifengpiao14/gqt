@@ -24,48 +24,48 @@ var CURLNamespaceSuffix = "curl"
 
 const TEMPLATE_MAP_KEY = "_templateMap"
 
-// DataVolumeInterface 如果模板中需要新增、修改数据，作为 sql prepared statement 值，则传递给模板的数据变量必须实现DataVolumeInterface接口
-type DataVolumeInterface interface {
-	SetValue(key string, value interface{})
-	GetValue(key string) (value interface{}, ok bool)
-	GetDynamicValus() (values map[string]interface{})
-}
-
-// TplEntityInterface 模板参数对象，由于sql、curl经常需要在模板中增加数据，所以直接在模板输入实体接口融合DataVolumeInterface 接口功能，实体包含隐藏字段类型DataVolumeMap，即可实现DataVolumeInterface 功能
+// TplEntityInterface 模板参数对象，由于sql、curl经常需要在模板中增加数据，所以直接在模板输入实体接口融合TplEntityInterface 接口功能，实体包含隐藏字段类型tplEntityMap，即可实现TplEntityInterface 功能
 type TplEntityInterface interface {
 	TplName() string
 	SetValue(key string, value interface{})
 	GetValue(key string) (value interface{}, ok bool)
 	GetDynamicValus() (values map[string]interface{})
-	TplOutput() (value string, err error)
+	TplOutput(tplEntity TplEntityInterface) (value string, err error)
 }
 
-type DataVolumeMap map[string]interface{}
+type TplEmptyEntity map[string]interface{}
 
-func (v *DataVolumeMap) init() {
+func (v *TplEmptyEntity) init() {
 	if v == nil {
-		err := errors.Errorf("*DataVolumMap must init")
+		err := errors.Errorf("*TplEmptyEntity must init")
 		panic(err)
 	}
 	if *v == nil {
-		*v = DataVolumeMap{} // 解决 data33 情况
+		*v = TplEmptyEntity{} // 解决 data33 情况
 	}
 }
 
-func (v *DataVolumeMap) SetValue(key string, value interface{}) {
+func (v *TplEmptyEntity) SetValue(key string, value interface{}) {
 	v.init()
 	(*v)[key] = value // todo 并发lock
 }
 
-func (v *DataVolumeMap) GetValue(key string) (value interface{}, ok bool) {
+func (v *TplEmptyEntity) GetValue(key string) (value interface{}, ok bool) {
 	v.init()
 	value, ok = (*v)[key]
 	return
 }
 
-func (v *DataVolumeMap) GetDynamicValus() (values map[string]interface{}) {
+func (v *TplEmptyEntity) GetDynamicValus() (values map[string]interface{}) {
 	v.init()
 	return *v
+}
+
+func (v *TplEmptyEntity) TplName() string {
+	return ""
+}
+func (v *TplEmptyEntity) TplOutput(tplEntity TplEntityInterface) (value string, err error) {
+	return
 }
 
 // RepositoryTemplate stores  templates.
@@ -140,7 +140,7 @@ type TPLDefine struct {
 	Name      string
 	Namespace string
 	Output    string
-	Input     DataVolumeInterface
+	Input     TplEntityInterface
 }
 
 func (d *TPLDefine) Fullname() (fullname string) {
@@ -189,7 +189,7 @@ func SpellFullname(namespace string, name string) (fullname string) {
 }
 
 // ExecuteNamespaceTemplate execute all template under namespace
-func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespace string, dataVolume DataVolumeInterface) (tplDefineList []*TPLDefine, err error) {
+func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespace string, tplEntity TplEntityInterface) (tplDefineList []*TPLDefine, err error) {
 	t, ok := templateMap[namespace]
 	if !ok {
 		err = errors.Errorf("not found namespace:%s", namespace)
@@ -200,12 +200,12 @@ func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespa
 	}
 	tplDefineList = make([]*TPLDefine, 0)
 	templates := t.Templates()
-	if dataVolume == nil { // 确保数据容器对象不为空
-		dataVolume = &DataVolumeMap{}
+	if tplEntity == nil { // 确保数据容器对象不为空
+		tplEntity = &TplEmptyEntity{}
 	}
-	dataVolume.SetValue(TEMPLATE_MAP_KEY, templateMap) // 将模板传入，方便在模板中执行模板
+	tplEntity.SetValue(TEMPLATE_MAP_KEY, templateMap) // 将模板传入，方便在模板中执行模板
 	for _, tpl := range templates {
-		tplDefine, err := execTpl(tpl, namespace, dataVolume)
+		tplDefine, err := execTpl(tpl, namespace, tplEntity)
 		if err != nil {
 			return nil, err
 		}
@@ -214,10 +214,10 @@ func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespa
 	return
 }
 
-func execTpl(tpl *template.Template, namespace string, dataVolume DataVolumeInterface) (tplDefine *TPLDefine, err error) {
+func execTpl(tpl *template.Template, namespace string, tplEntity TplEntityInterface) (tplDefine *TPLDefine, err error) {
 	var b bytes.Buffer
-	dataVolume.SetValue("tpl", tpl)
-	err = tpl.Execute(&b, &dataVolume) // 此处使用引用地址，方便在模板中增加数据，返回到data中
+	tplEntity.SetValue("tpl", tpl)
+	err = tpl.Execute(&b, &tplEntity) // 此处使用引用地址，方便在模板中增加数据，返回到data中
 	if err != nil {
 		err = errors.WithStack(err)
 		return
@@ -227,13 +227,13 @@ func execTpl(tpl *template.Template, namespace string, dataVolume DataVolumeInte
 		Name:      tpl.Name(),
 		Namespace: namespace,
 		Output:    out,
-		Input:     dataVolume,
+		Input:     tplEntity,
 	}
 	return
 }
 
 // ExecuteNamespaceTemplate execute all template under namespace
-func ExecuteTemplate(templateMap map[string]*template.Template, fullname string, dataVolume DataVolumeInterface) (tplDefine *TPLDefine, err error) {
+func ExecuteTemplate(templateMap map[string]*template.Template, fullname string, tplEntity TplEntityInterface) (tplDefine *TPLDefine, err error) {
 	namespace, name := SplitFullname(fullname)
 	t, ok := templateMap[namespace]
 	if !ok {
@@ -245,11 +245,11 @@ func ExecuteTemplate(templateMap map[string]*template.Template, fullname string,
 		err = errors.Errorf("ExecuteTemplate: no template %q associated with template %q", name, t.Name())
 		return nil, err
 	}
-	if dataVolume == nil { // 确保数据容器对象不为空
-		dataVolume = &DataVolumeMap{}
+	if tplEntity == nil { // 确保数据容器对象不为空
+		tplEntity = &TplEmptyEntity{}
 	}
-	dataVolume.SetValue(TEMPLATE_MAP_KEY, templateMap) // 将模板传入，方便在模板中执行模板
-	tplDefine, err = execTpl(tpl, namespace, dataVolume)
+	tplEntity.SetValue(TEMPLATE_MAP_KEY, templateMap) // 将模板传入，方便在模板中执行模板
+	tplDefine, err = execTpl(tpl, namespace, tplEntity)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +257,7 @@ func ExecuteTemplate(templateMap map[string]*template.Template, fullname string,
 }
 
 //ExecuteTemplateTry 找不到模板的时候，返回null，不报错(curl 模板需要先执行xxxBody_模板)
-func ExecuteTemplateTry(templateMap map[string]*template.Template, fullname string, dataVolume DataVolumeInterface) (tplDefine *TPLDefine, err error) {
+func ExecuteTemplateTry(templateMap map[string]*template.Template, fullname string, tplEntity TplEntityInterface) (tplDefine *TPLDefine, err error) {
 	namespace, name := SplitFullname(fullname)
 	t, ok := templateMap[namespace]
 	if !ok {
@@ -268,11 +268,11 @@ func ExecuteTemplateTry(templateMap map[string]*template.Template, fullname stri
 	if tpl == nil {
 		return
 	}
-	if dataVolume == nil { // 确保数据容器对象不为空
-		dataVolume = &DataVolumeMap{}
+	if tplEntity == nil { // 确保数据容器对象不为空
+		tplEntity = &TplEmptyEntity{}
 	}
-	dataVolume.SetValue(TEMPLATE_MAP_KEY, templateMap) // 将模板传入，方便在模板中执行模板
-	tplDefine, err = execTpl(tpl, namespace, dataVolume)
+	tplEntity.SetValue(TEMPLATE_MAP_KEY, templateMap) // 将模板传入，方便在模板中执行模板
+	tplDefine, err = execTpl(tpl, namespace, tplEntity)
 	if err != nil {
 		return nil, err
 	}
@@ -348,10 +348,10 @@ func SnakeCase(name string) string {
 }
 
 //TplOutput 模板中执行模板，获取数据时使用 gqttool 生成的entity 会调用该方法，实现 TplEntityInterface 接口
-func TplOutput(dataVolume DataVolumeInterface, fullname string) (output string, err error) {
-	templateMapI, ok := dataVolume.GetValue(TEMPLATE_MAP_KEY)
+func TplOutput(tplEntity TplEntityInterface, fullname string) (output string, err error) {
+	templateMapI, ok := tplEntity.GetValue(TEMPLATE_MAP_KEY)
 	if !ok {
-		err = errors.Errorf("not found key %s in %#v", TEMPLATE_MAP_KEY, dataVolume)
+		err = errors.Errorf("not found key %s in %#v", TEMPLATE_MAP_KEY, tplEntity)
 		return
 	}
 	var templateMap map[string]*template.Template
@@ -361,11 +361,11 @@ func TplOutput(dataVolume DataVolumeInterface, fullname string) (output string, 
 	} else {
 		templateMap, ok = templateMapI.(map[string]*template.Template)
 		if !ok {
-			err = errors.Errorf(" key %s value want  %#v,got %#v", TEMPLATE_MAP_KEY, templateMap, dataVolume)
+			err = errors.Errorf(" key %s value want  %#v,got %#v", TEMPLATE_MAP_KEY, templateMap, tplEntity)
 			return
 		}
 	}
-	tplDefine, err := ExecuteTemplate(templateMap, fullname, dataVolume)
+	tplDefine, err := ExecuteTemplate(templateMap, fullname, tplEntity)
 	if err != nil {
 		return
 	}
@@ -394,44 +394,44 @@ func Glob(fsys fs.FS, pattern string) ([]string, error) {
 	return matches, nil
 }
 
-//Interface2DataVolume convert interface to DataVolumeInterface 核心思路：使得 input 和 out 指向同一个内存地址
-func Interface2DataVolume(input interface{}) (out DataVolumeInterface, ok bool) {
+//Interface2tplEntity convert interface to TplEntityInterface 核心思路：使得 input 和 out 指向同一个内存地址
+func Interface2tplEntity(input interface{}) (out TplEntityInterface, ok bool) {
 	if inputI, ok := input.(*interface{}); ok {
 		input = *inputI
 	}
-	if datavolume, ok := input.(DataVolumeMap); ok {
-		out = &datavolume
+	if tplEntity, ok := input.(TplEmptyEntity); ok {
+		out = &tplEntity
 		return out, ok
 	}
-	if dataVolumeMapRef, ok := input.(*DataVolumeMap); ok {
-		out = dataVolumeMapRef
+	if tplEntityMapRef, ok := input.(*TplEmptyEntity); ok {
+		out = tplEntityMapRef
 		return out, ok
 	}
 
 	if inputMap, ok := input.(map[string]interface{}); ok {
-		inputvolumeMap := DataVolumeMap(inputMap)
+		inputvolumeMap := TplEmptyEntity(inputMap)
 		out = &inputvolumeMap
 		return out, ok
 	}
 	if inputMap, ok := input.(*map[string]interface{}); ok { // 同时更新input 内的对象，使得input、out指向同一个地址 data21
-		tmp := DataVolumeMap(*inputMap)
+		tmp := TplEmptyEntity(*inputMap)
 		out = &tmp
 		return out, ok
 	}
 
-	if out, ok := input.(DataVolumeInterface); ok {
+	if out, ok := input.(TplEntityInterface); ok {
 		v := reflect.Indirect(reflect.ValueOf(out))
 		t := v.Type()
 		if t.Kind() == reflect.Struct {
-			defaultDataVolumeMap := &DataVolumeMap{}
-			targetType := reflect.TypeOf(defaultDataVolumeMap)
+			defaulttplEntityMap := &TplEmptyEntity{}
+			targetType := reflect.TypeOf(defaulttplEntityMap)
 			n := t.NumField()
 			for i := 0; i < n; i++ {
 				fv := v.Field(i)
 				ft := fv.Type()
 				if ft == targetType && fv.IsValid() && fv.IsNil() {
 					if fv.CanSet() {
-						fv.Set(reflect.ValueOf((defaultDataVolumeMap))) //解决结构体无名称方式引用 *DataVolumeMap ,实例化时，并没有实力该字段，导致地址为空,解决测试用例data34 填充值问题
+						fv.Set(reflect.ValueOf((defaulttplEntityMap))) //解决结构体无名称方式引用 *tplEntityMap ,实例化时，并没有实力该字段，导致地址为空,解决测试用例data34 填充值问题
 					} else {
 						// todo resolve data32 panic
 					}

@@ -31,13 +31,13 @@ func init() {
 
 type ListEntity struct {
 	IDS []int
-	gqttpl.DataVolumeMap
+	gqttpl.TplEmptyEntity
 }
 
 func (t *ListEntity) TplName() string {
 	return "sql.list"
 }
-func (t *ListEntity) TplOutput() (string, error) {
+func (t *ListEntity) TplOutput(tplEntity gqttpl.TplEntityInterface) (string, error) {
 	return "sql.list", nil
 }
 
@@ -48,8 +48,8 @@ func TestSubDefineWhere(t *testing.T) {
 	}
 
 	entity := &ListEntity{
-		IDS:           []int{1, 2, 3},
-		DataVolumeMap: gqttpl.DataVolumeMap{},
+		IDS:            []int{1, 2, 3},
+		TplEmptyEntity: gqttpl.TplEmptyEntity{},
 	}
 	sql, err := repo.GetSQLByTplEntity(entity)
 	if err != nil {
@@ -69,7 +69,7 @@ func TestStruct(t *testing.T) {
 	type structData struct {
 		APIID int
 		Ids   string
-		*gqttpl.DataVolumeMap
+		*gqttpl.TplEmptyEntity
 	}
 
 	data := &structData{
@@ -95,8 +95,8 @@ func TestMap(t *testing.T) {
 	data := make(map[string]interface{})
 	data["APIID"] = 1
 	data["Ids"] = "1,2,4"
-	dataVolume := gqttpl.DataVolumeMap(data)
-	sql, err := repo.GetSQL("parameter.getAllByAPIID", &dataVolume)
+	tplEntity := gqttpl.TplEmptyEntity(data)
+	sql, err := repo.GetSQL("parameter.getAllByAPIID", &tplEntity)
 	if err != nil {
 		panic(err)
 	}
@@ -142,8 +142,8 @@ func (s *ModelStruct) PrimaryKeyCamel() string {
 	return "ID"
 }
 
-type DataVolumeInt struct {
-	dataVolume []int
+type tplEntityInt struct {
+	tplEntity []int
 }
 
 // 测试指针类型转换
@@ -151,12 +151,12 @@ func TestPtrConvert(t *testing.T) {
 	mapPtr := &map[string]interface{}{
 		"IDS": []int{1, 3, 4},
 	}
-	volumePtr := &DataVolumeInt{
-		dataVolume: []int{5, 6, 7},
+	volumePtr := &tplEntityInt{
+		tplEntity: []int{5, 6, 7},
 	}
 	//interfac := interface{}(mapPtr)
 
-	a := (*DataVolumeInt)(unsafe.Pointer(mapPtr))
+	a := (*tplEntityInt)(unsafe.Pointer(mapPtr))
 	*a = *volumePtr
 	fmt.Println(a)
 	fmt.Println(volumePtr)
@@ -181,21 +181,21 @@ func TestSQLInMap(t *testing.T) {
 	data := map[string]interface{}{
 		"IDS": []int{1, 3, 4},
 	}
-	dataVolume := gqttpl.DataVolumeMap(data)
-	sqlrow, err := repo.GetSQL("test.testIn", &dataVolume)
+	tplEntity := gqttpl.TplEmptyEntity(data)
+	sqlrow, err := repo.GetSQL("test.testIn", &tplEntity)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(sqlrow)
 }
 
-type DataVolumeTest struct {
+type tplEntityTest struct {
 	Hello string
 	IDS   []int
-	gqttpl.DataVolumeMap
+	gqttpl.TplEmptyEntity
 }
 
-func TestSQLInDataVolume(t *testing.T) {
+func TestSQLIntplEntity(t *testing.T) {
 	tpl := `
 	{{define "testIn"}}
 	 select * from aa where id {{in . .IDS}};
@@ -206,10 +206,10 @@ func TestSQLInDataVolume(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	data := &DataVolumeTest{
+	data := &tplEntityTest{
 		Hello: "hell",
 		IDS:   []int{1, 3, 4},
-		//DataVolumeMap: make(DataVolumeMap),
+		//tplEntityMap: make(tplEntityMap),
 	}
 	sqlrow, err := repo.GetSQL("test.testIn", data)
 	if err != nil {

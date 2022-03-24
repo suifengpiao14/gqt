@@ -101,7 +101,7 @@ func (r *RepositorySQL) DefineResult2SQLRow(defineResult gqttpl.TPLDefine) (sqlR
 }
 
 // GetByNamespace get all template under namespace
-func (r *RepositorySQL) GetByNamespace(namespace string, data gqttpl.DataVolumeInterface) (sqlRowList []*SQLRow, err error) {
+func (r *RepositorySQL) GetByNamespace(namespace string, data gqttpl.TplEntityInterface) (sqlRowList []*SQLRow, err error) {
 	defineResultList, err := gqttpl.ExecuteNamespaceTemplate(r.templates, namespace, data)
 	if err != nil {
 		return nil, err
@@ -170,7 +170,7 @@ func (r *RepositorySQL) GetSQLRawByTplEntityRef(t gqttpl.TplEntityInterface, sql
 }
 
 //无sql注入的安全方式
-func (r *RepositorySQL) GetSQL(fullname string, data gqttpl.DataVolumeInterface) (sqlRow *SQLRow, err error) {
+func (r *RepositorySQL) GetSQL(fullname string, data gqttpl.TplEntityInterface) (sqlRow *SQLRow, err error) {
 	defineResult, err := gqttpl.ExecuteTemplate(r.templates, fullname, data)
 	if err != nil {
 		return nil, err
@@ -205,11 +205,11 @@ func getNamedData(data interface{}) (out map[string]interface{}, err error) {
 		out = *mapOutRef
 		return
 	}
-	if mapOut, ok := data.(gqttpl.DataVolumeMap); ok {
+	if mapOut, ok := data.(gqttpl.TplEmptyEntity); ok {
 		out = mapOut
 		return
 	}
-	if mapOutRef, ok := data.(*gqttpl.DataVolumeMap); ok {
+	if mapOutRef, ok := data.(*gqttpl.TplEmptyEntity); ok {
 		out = *mapOutRef
 		return
 	}

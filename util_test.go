@@ -25,13 +25,13 @@ type ExampleEntity struct {
 	ExampleID string
 	ServiceID int
 	Request   bool
-	gqttpl.DataVolumeMap
+	gqttpl.TplEmptyEntity
 }
 
 func (e *ExampleEntity) TplName() string {
 	return "example"
 }
-func (e *ExampleEntity) TplOutput() (string, error) {
+func (e *ExampleEntity) TplOutput(tplEntity gqttpl.TplEntityInterface) (string, error) {
 	return "tpl exec output", nil
 }
 

@@ -36,21 +36,21 @@ func TestAddByFS(t *testing.T) {
 	fmt.Println(files)
 }
 
-type DataVolumeMapStruct struct {
+type tplEntityMapStruct struct {
 	ID string
-	DataVolumeMap
+	TplEmptyEntity
 }
 
-type DataVolumeMapStructRef struct {
+type tplEntityMapStructRef struct {
 	ID string
-	*DataVolumeMap
+	*TplEmptyEntity
 }
 
-func TestInterface2DataVolume(t *testing.T) {
-	data11 := &DataVolumeMap{
+func TestInterface2tplEntity(t *testing.T) {
+	data11 := &TplEmptyEntity{
 		"ID": "data11",
 	}
-	data12 := DataVolumeMap{
+	data12 := TplEmptyEntity{
 		"ID": "data12",
 	}
 	data21 := &map[string]interface{}{
@@ -60,25 +60,25 @@ func TestInterface2DataVolume(t *testing.T) {
 		"ID": "data22",
 	}
 
-	data31 := DataVolumeMapStruct{
+	data31 := tplEntityMapStruct{
 		ID: "data31",
 	}
-	data32 := DataVolumeMapStructRef{
+	data32 := tplEntityMapStructRef{
 		ID: "data32",
 	}
-	data33 := &DataVolumeMapStruct{
+	data33 := &tplEntityMapStruct{
 		ID: "data33",
 	}
-	data34 := &DataVolumeMapStructRef{
+	data34 := &tplEntityMapStructRef{
 		ID: "data34",
 	}
 	data := []interface{}{data11, data12, data21, data22, data31, data32, data33, data34}
 	for _, d := range data {
 		di := interface{}(d)
-		dataVolume, ok := Interface2DataVolume(&di)
+		tplEntity, ok := Interface2tplEntity(&di)
 		if ok {
-			dataVolume.SetValue("hello", "world")
-			dv, _ := d.(DataVolumeInterface)
+			tplEntity.SetValue("hello", "world")
+			dv, _ := d.(TplEntityInterface)
 			if dv != nil {
 				hello, _ := dv.GetValue("hello")
 				fmt.Print(hello)
@@ -95,48 +95,48 @@ func TestInterface2DataVolume(t *testing.T) {
 
 }
 
-//TestInterface2DataVolumeDataVolumeMap 测试 传入 VolumeDataVolumeMap 类型
-func TestInterface2DataVolumeDataVolumeMap(t *testing.T) {
-	d := DataVolumeMap{
+//TestInterface2tplEntitytplEntityMap 测试 传入 VolumetplEntityMap 类型
+func TestInterface2tplEntitytplEntityMap(t *testing.T) {
+	d := TplEmptyEntity{
 		"ID": "data12",
 	}
-	dataVolume, ok := Interface2DataVolume(d)
+	tplEntity, ok := Interface2tplEntity(d)
 	if !ok {
 		fmt.Printf("no-%#v\n", d)
 	} else {
 		fmt.Printf("ok-%#v\n", d)
-		dataVolume.SetValue("hello", "world")
+		tplEntity.SetValue("hello", "world")
 		hello, _ := d.GetValue("hello")
 		fmt.Println(hello)
 	}
 }
 
-// TestInterface2DataVolumeMap 测试传入 map[string]interface{}类型
-func TestInterface2DataVolumeMap(t *testing.T) {
+// TestInterface2tplEntityMap 测试传入 map[string]interface{}类型
+func TestInterface2tplEntityMap(t *testing.T) {
 	d := map[string]interface{}{
 		"ID": "data12",
 	}
 
-	dataVolume, ok := Interface2DataVolume(d)
+	tplEntity, ok := Interface2tplEntity(d)
 	if !ok {
 		fmt.Printf("no-%#v\n", d)
 	} else {
-		dataVolume.SetValue("hello", "world")
+		tplEntity.SetValue("hello", "world")
 		fmt.Printf("ok-%#v\n", d)
 	}
 }
 
-//TestInterface2DataVolumeStruct 测试传入 struct 类型
-func TestInterface2DataVolumeStruct(t *testing.T) {
-	d := &DataVolumeMapStruct{
+//TestInterface2tplEntityStruct 测试传入 struct 类型
+func TestInterface2tplEntityStruct(t *testing.T) {
+	d := &tplEntityMapStruct{
 		ID: "data31",
 	}
-	dataVolume, ok := Interface2DataVolume(d)
+	tplEntity, ok := Interface2tplEntity(d)
 	if !ok {
 		fmt.Printf("no-%#v\n", d)
 	} else {
 
-		dataVolume.SetValue("hello", "world")
+		tplEntity.SetValue("hello", "world")
 		fmt.Printf("ok-%#v\n", d)
 		hello, _ := d.GetValue("hello")
 		fmt.Println(hello)
@@ -145,21 +145,21 @@ func TestInterface2DataVolumeStruct(t *testing.T) {
 	fmt.Printf("ok-%#v\n", d)
 }
 
-func TestInterface2DataVolumeStructRef(t *testing.T) {
-	d := DataVolumeMapStructRef{
+func TestInterface2tplEntityStructRef(t *testing.T) {
+	d := tplEntityMapStructRef{
 		ID: "data32",
 	}
-	dataVolume, ok := Interface2DataVolume(d)
+	tplEntity, ok := Interface2tplEntity(d)
 	if !ok {
 		fmt.Printf("no-%#v\n", d)
 	} else {
 		fmt.Printf("ok-%#v\n", d)
-		dataVolume.SetValue("hello", "world")
+		tplEntity.SetValue("hello", "world")
 		hello, _ := d.GetValue("hello")
 		fmt.Println(hello)
 	}
 }
 
 /**
-&gqttpl.DataVolumeMapStructRef{ID:"data32", DataVolumeMap:(*gqttpl.DataVolumeMap)(nil)}ok-&gqttpl.DataVolumeMapStructRef{ID:"data32", DataVolumeMap:(*gqttpl.DataVolumeMap)(0xc00020e1f0)}
+&gqttpl.tplEntityMapStructRef{ID:"data32", tplEntityMap:(*gqttpl.tplEntityMap)(nil)}ok-&gqttpl.tplEntityMapStructRef{ID:"data32", tplEntityMap:(*gqttpl.tplEntityMap)(0xc00020e1f0)}
 **/
