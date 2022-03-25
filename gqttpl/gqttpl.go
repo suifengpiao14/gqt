@@ -132,10 +132,18 @@ func AddTemplateByStr(namespace string, content string, funcMap template.FuncMap
 
 type TPLDefineList []*TPLDefine
 
+const (
+	TPL_DEFINE_TYPE_CURL_REQUEST  = "curl_request"
+	TPL_DEFINE_TYPE_CURL_RESPONSE = "curl_response"
+	TPL_DEFINE_TYPE_SQL           = "sql"
+	TPL_DEFINE_TYPE_TEXT          = "text"
+)
+
 type TPLDefine struct {
 	Name      string
 	Namespace string
 	Output    string
+	Type      string
 	Input     TplEntityInterface
 }
 
