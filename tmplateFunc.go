@@ -21,6 +21,7 @@ var TemplatefuncMap = template.FuncMap{
 	"toCamel":       gqttpl.ToCamel,
 	"toLowerCamel":  gqttpl.ToLowerCamel,
 	"snakeCase":     gqttpl.SnakeCase,
+	"tplOutput":     gqttpl.TplOutput,
 }
 
 // Convert2tplEntity 确保一定传入的是地址引用
