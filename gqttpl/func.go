@@ -1,6 +1,7 @@
 package gqttpl
 
 import (
+	"strings"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -44,4 +45,9 @@ func TplOutput(dataVolume TplEntityInterface, tplEntity TplEntityInterface) (out
 	}
 	output = tplDefine.Output
 	return
+}
+
+func ToEOF(s string) string {
+	out := strings.ReplaceAll(s, WINDOW_EOF, EOF) // 统一换行符
+	return out
 }

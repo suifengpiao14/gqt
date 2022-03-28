@@ -24,9 +24,6 @@ func NewRepositorySQL() *RepositorySQL {
 	}
 }
 
-var LeftDelim = "{{"
-var RightDelim = "}}"
-
 type SQLRow struct {
 	Name      string
 	Namespace string
@@ -37,11 +34,11 @@ type SQLRow struct {
 }
 
 func (r *RepositorySQL) AddByDir(root string, funcMap template.FuncMap) (err error) {
-	r.templates, err = gqttpl.AddTemplateByDir(root, gqttpl.SQLNamespaceSuffix, funcMap, LeftDelim, RightDelim)
+	r.templates, err = gqttpl.AddTemplateByDir(root, gqttpl.SQLNamespaceSuffix, funcMap, gqttpl.LeftDelim, gqttpl.RightDelim)
 	if err != nil {
 		return
 	}
-	ddlTemplates, err := gqttpl.AddTemplateByDir(root, gqttpl.DDLNamespaceSuffix, funcMap, LeftDelim, RightDelim)
+	ddlTemplates, err := gqttpl.AddTemplateByDir(root, gqttpl.DDLNamespaceSuffix, funcMap, gqttpl.LeftDelim, gqttpl.RightDelim)
 	if err != nil {
 		return
 	}
@@ -52,11 +49,11 @@ func (r *RepositorySQL) AddByDir(root string, funcMap template.FuncMap) (err err
 }
 
 func (r *RepositorySQL) AddByFS(fsys fs.FS, root string, funcMap template.FuncMap) (err error) {
-	r.templates, err = gqttpl.AddTemplateByFS(fsys, root, gqttpl.SQLNamespaceSuffix, funcMap, LeftDelim, RightDelim)
+	r.templates, err = gqttpl.AddTemplateByFS(fsys, root, gqttpl.SQLNamespaceSuffix, funcMap, gqttpl.LeftDelim, gqttpl.RightDelim)
 	if err != nil {
 		return
 	}
-	ddlTemplates, err := gqttpl.AddTemplateByFS(fsys, root, gqttpl.DDLNamespaceSuffix, funcMap, LeftDelim, RightDelim)
+	ddlTemplates, err := gqttpl.AddTemplateByFS(fsys, root, gqttpl.DDLNamespaceSuffix, funcMap, gqttpl.LeftDelim, gqttpl.RightDelim)
 	if err != nil {
 		return
 	}
@@ -67,7 +64,7 @@ func (r *RepositorySQL) AddByFS(fsys fs.FS, root string, funcMap template.FuncMa
 }
 
 func (r *RepositorySQL) AddByNamespace(namespace string, content string, funcMap template.FuncMap) (err error) {
-	t, err := gqttpl.AddTemplateByStr(namespace, content, funcMap, LeftDelim, RightDelim)
+	t, err := gqttpl.AddTemplateByStr(namespace, content, funcMap, gqttpl.LeftDelim, gqttpl.RightDelim)
 	if err != nil {
 		err = errors.WithStack(err)
 		return err

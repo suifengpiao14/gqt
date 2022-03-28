@@ -132,19 +132,33 @@ func AddTemplateByStr(namespace string, content string, funcMap template.FuncMap
 
 type TPLDefineList []*TPLDefine
 
+var LeftDelim = "{{"
+var RightDelim = "}}"
+
 const (
 	TPL_DEFINE_TYPE_CURL_REQUEST  = "curl_request"
 	TPL_DEFINE_TYPE_CURL_RESPONSE = "curl_response"
-	TPL_DEFINE_TYPE_SQL           = "sql"
+	TPL_DEFINE_TYPE_SQL_SELECT    = "sql_select"
+	TPL_DEFINE_TYPE_SQL_UPDATE    = "sql_update"
+	TPL_DEFINE_TYPE_SQL_INSERT    = "sql_insert"
 	TPL_DEFINE_TYPE_TEXT          = "text"
+	CHARACTERISTIC_CURL           = "HTTP/1.1"
+	CHARACTERISTIC_SQL_SELECT     = "SELECT"
+	CHARACTERISTIC_SQL_UPDATE     = "UPDATE"
+	CHARACTERISTIC_SQL_INSERT     = "INSERT"
+	EOF                           = "\n"
+	WINDOW_EOF                    = "\r\n"
+	HTTP_HEAD_BODY_DELIM          = EOF + EOF
 )
 
 type TPLDefine struct {
-	Name      string
-	Namespace string
-	Output    string
-	Type      string
-	Input     TplEntityInterface
+	RightDelim string
+	LeftDelim  string
+	Name       string
+	Namespace  string
+	Output     string
+	typ        string
+	Input      TplEntityInterface
 }
 
 func (d *TPLDefine) Fullname() (fullname string) {
@@ -157,6 +171,128 @@ func (d *TPLDefine) FullnameCamel() (fullnameCamel string) {
 
 	return
 }
+
+//Content TPLDefine.Out 含有{{define ...{{end}} Content 在此基础上 去除 define标记
+func (d *TPLDefine) Content() (content string) {
+	content = TrimSpaces(d.Output) // 去除开头结尾的非有效字符
+	index := strings.Index(content, d.RightDelim)
+	if index < 0 {
+		err := errors.Errorf("not found %sdefine \"xxx\" %s in tpl content %s", d.LeftDelim, d.RightDelim, content)
+		panic(err)
+	}
+
+	endTag := fmt.Sprintf("%send%s", d.LeftDelim, d.RightDelim)
+	endIndex := strings.Index(content, endTag)
+	if endIndex < 0 {
+		err := errors.Errorf("not found %send%s in tpl content %s", d.LeftDelim, d.RightDelim, content)
+		panic(err)
+	}
+	content = content[index+len(d.RightDelim) : len(content)-len(endTag)]
+	content = TrimSpaces(content)
+	return
+}
+
+func (d *TPLDefine) ContentFirstLine(s string) (firstLine string) {
+	re, err := regexp.Compile(fmt.Sprintf("%s.*%s", d.LeftDelim, d.RightDelim))
+	if err != nil {
+		panic(err)
+	}
+	for {
+		firstLineIndex := strings.Index(s, EOF)
+		if firstLineIndex < 0 {
+			firstLine = s
+			break
+		}
+		firstLine = s[:firstLineIndex]
+		firstLine = re.ReplaceAllString(firstLine, "") // 删除template 模板变量，防止第一行为模板变量行，如果为模板变量则取下一行
+		firstLine = TrimSpaces(firstLine)
+		if firstLine != "" {
+			break
+		}
+		s = s[firstLineIndex+len(EOF):] // 更新s 再次获取
+	}
+	return
+}
+
+//Type 判断 tpl define 属于那种类型
+func (d *TPLDefine) Type() (typ string) {
+	if d.typ != "" {
+		return d.typ
+	}
+	typ = TPL_DEFINE_TYPE_TEXT
+	content := d.Content()
+	firstLine := d.ContentFirstLine(content)
+	if firstLine == "" {
+		d.typ = typ
+		return
+	}
+	curlLen := len(CHARACTERISTIC_CURL)
+	fl := len(firstLine)
+	if fl >= curlLen {
+		last := strings.ToUpper(firstLine[fl-curlLen:])
+		if last == CHARACTERISTIC_CURL {
+			typ = TPL_DEFINE_TYPE_CURL_REQUEST
+			d.typ = typ
+			return
+		}
+
+		first := strings.ToUpper(firstLine[:curlLen])
+		if first == CHARACTERISTIC_CURL {
+			typ = TPL_DEFINE_TYPE_CURL_RESPONSE
+			d.typ = typ
+			return
+		}
+	}
+
+	sqlSelectLen := len(CHARACTERISTIC_SQL_SELECT)
+	if fl >= sqlSelectLen {
+		first := strings.ToUpper(firstLine[:sqlSelectLen])
+		if first == CHARACTERISTIC_SQL_SELECT {
+			typ = TPL_DEFINE_TYPE_SQL_SELECT
+			d.typ = typ
+			return
+		}
+	}
+
+	sqlUpdateLen := len(CHARACTERISTIC_SQL_UPDATE)
+	if fl > sqlUpdateLen {
+		first := strings.ToUpper(firstLine[:sqlUpdateLen])
+		if first == CHARACTERISTIC_SQL_UPDATE {
+			typ = TPL_DEFINE_TYPE_SQL_UPDATE
+			d.typ = typ
+			return
+		}
+	}
+
+	sqlInsertLen := len(CHARACTERISTIC_SQL_INSERT)
+	if fl > sqlInsertLen {
+		first := strings.ToUpper(firstLine[:sqlInsertLen])
+		if first == CHARACTERISTIC_SQL_INSERT {
+			typ = TPL_DEFINE_TYPE_SQL_INSERT
+			d.typ = typ
+			return
+		}
+	}
+
+	d.typ = typ
+	return
+}
+
+//判断是否为CURL 类型
+func (d *TPLDefine) ISCURL() (yes bool) {
+	typ := d.Type()
+	yes = (typ == TPL_DEFINE_TYPE_CURL_REQUEST) || (typ == TPL_DEFINE_TYPE_CURL_RESPONSE)
+	return
+}
+
+//判断是否为SQL 类型
+func (d *TPLDefine) ISSQL() (yes bool) {
+	typ := d.Type()
+	yes = (typ == TPL_DEFINE_TYPE_SQL_SELECT) || (typ == TPL_DEFINE_TYPE_SQL_UPDATE) || (typ == TPL_DEFINE_TYPE_SQL_INSERT)
+	return
+}
+
+//Tag TPLDefine 标签 namespace 的后缀（curl、sql、ddl、meta）
 func (d *TPLDefine) Tag() (tag string) {
 	lastIndex := strings.Index(d.Namespace, ".")
 	tag = d.Namespace
@@ -331,6 +467,11 @@ func FileName2Namespace(filename string, root string) (namespace string) {
 
 func StandardizeSpaces(s string) string {
 	return strings.Join(strings.Fields(s), " ")
+}
+
+//TrimSpaces  去除开头结尾的非有效字符
+func TrimSpaces(s string) string {
+	return strings.Trim(s, "\r\n\t\v\f ")
 }
 
 func Statement2SQL(sqlStatement string, vars []interface{}) (sqlStr string) {
