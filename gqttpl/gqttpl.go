@@ -22,6 +22,7 @@ var MetaNamespaceSuffix = "meta"
 var CURLNamespaceSuffix = "curl"
 
 const TEMPLATE_MAP_KEY = "_templateMap"
+const URI_KEY = "__URI__" // 记录资源地址key(curl 请求地址、db 连接地址等)
 
 const (
 	TPL_DEFINE_TYPE_CURL_REQUEST  = "curl_request"
