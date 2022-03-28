@@ -23,9 +23,26 @@ var CURLNamespaceSuffix = "curl"
 
 const TEMPLATE_MAP_KEY = "_templateMap"
 
+const (
+	TPL_DEFINE_TYPE_CURL_REQUEST  = "curl_request"
+	TPL_DEFINE_TYPE_CURL_RESPONSE = "curl_response"
+	TPL_DEFINE_TYPE_SQL_SELECT    = "sql_select"
+	TPL_DEFINE_TYPE_SQL_UPDATE    = "sql_update"
+	TPL_DEFINE_TYPE_SQL_INSERT    = "sql_insert"
+	TPL_DEFINE_TYPE_TEXT          = "text"
+	CHARACTERISTIC_CURL           = "HTTP/1.1"
+	CHARACTERISTIC_SQL_SELECT     = "SELECT"
+	CHARACTERISTIC_SQL_UPDATE     = "UPDATE"
+	CHARACTERISTIC_SQL_INSERT     = "INSERT"
+	EOF                           = "\n"
+	WINDOW_EOF                    = "\r\n"
+	HTTP_HEAD_BODY_DELIM          = EOF + EOF
+)
+
 // TplEntityInterface 模板参数对象，由于sql、curl经常需要在模板中增加数据，所以直接在模板输入实体接口融合TplEntityInterface 接口功能，实体包含隐藏字段类型tplEntityMap，即可实现TplEntityInterface 功能
 type TplEntityInterface interface {
 	TplName() string
+	TplType() string // 返回 TPL_DEFINE_TYPE 类型，方便后续根据类型获取资源(db、curl) 自动获取数据
 	SetValue(key string, value interface{})
 	GetValue(key string) (value interface{}, ok bool)
 	GetDynamicValus() (values map[string]interface{})
@@ -61,6 +78,10 @@ func (v *TplEmptyEntity) GetDynamicValus() (values map[string]interface{}) {
 
 func (v *TplEmptyEntity) TplName() string {
 	err := errors.Errorf("*TplEmptyEntity.TplName is empty")
+	panic(err)
+}
+func (v *TplEmptyEntity) TplType() string {
+	err := errors.Errorf("*TplEmptyEntity.TplType is empty")
 	panic(err)
 }
 
@@ -134,22 +155,6 @@ type TPLDefineList []*TPLDefine
 
 var LeftDelim = "{{"
 var RightDelim = "}}"
-
-const (
-	TPL_DEFINE_TYPE_CURL_REQUEST  = "curl_request"
-	TPL_DEFINE_TYPE_CURL_RESPONSE = "curl_response"
-	TPL_DEFINE_TYPE_SQL_SELECT    = "sql_select"
-	TPL_DEFINE_TYPE_SQL_UPDATE    = "sql_update"
-	TPL_DEFINE_TYPE_SQL_INSERT    = "sql_insert"
-	TPL_DEFINE_TYPE_TEXT          = "text"
-	CHARACTERISTIC_CURL           = "HTTP/1.1"
-	CHARACTERISTIC_SQL_SELECT     = "SELECT"
-	CHARACTERISTIC_SQL_UPDATE     = "UPDATE"
-	CHARACTERISTIC_SQL_INSERT     = "INSERT"
-	EOF                           = "\n"
-	WINDOW_EOF                    = "\r\n"
-	HTTP_HEAD_BODY_DELIM          = EOF + EOF
-)
 
 type TPLDefine struct {
 	RightDelim string
