@@ -7,7 +7,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/suifengpiao14/gqt/v2/gqttpl"
 )
 
@@ -22,18 +21,6 @@ var TemplatefuncMap = template.FuncMap{
 	"toLowerCamel":  gqttpl.ToLowerCamel,
 	"snakeCase":     gqttpl.SnakeCase,
 	"tplOutput":     gqttpl.TplOutput,
-}
-
-// Convert2tplEntity 确保一定传入的是地址引用
-func Convert2tplEntity(data interface{}) (tplEntity gqttpl.TplEntityInterface, err error) {
-
-	tplEntity, ok := gqttpl.Interface2tplEntity(data)
-	if !ok {
-		err = errors.Errorf("expected implement interface gqt.tplEntityInterface ; got %#v ", data)
-		return nil, err
-	}
-
-	return
 }
 
 func ZeroTime(tplEntity gqttpl.TplEntityInterface) (string, error) {

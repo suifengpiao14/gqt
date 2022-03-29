@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 	"text/template"
@@ -516,53 +515,4 @@ func GlobDirectory(dir string, pattern string) ([]string, error) {
 		return nil
 	})
 	return matches, err
-}
-
-//Interface2tplEntity convert interface to TplEntityInterface 核心思路：使得 input 和 out 指向同一个内存地址
-func Interface2tplEntity(input interface{}) (out TplEntityInterface, ok bool) {
-	if inputI, ok := input.(*interface{}); ok {
-		input = *inputI
-	}
-	if tplEntity, ok := input.(TplEmptyEntity); ok {
-		out = &tplEntity
-		return out, ok
-	}
-	if tplEntityMapRef, ok := input.(*TplEmptyEntity); ok {
-		out = tplEntityMapRef
-		return out, ok
-	}
-
-	if inputMap, ok := input.(map[string]interface{}); ok {
-		inputvolumeMap := TplEmptyEntity(inputMap)
-		out = &inputvolumeMap
-		return out, ok
-	}
-	if inputMap, ok := input.(*map[string]interface{}); ok { // 同时更新input 内的对象，使得input、out指向同一个地址 data21
-		tmp := TplEmptyEntity(*inputMap)
-		out = &tmp
-		return out, ok
-	}
-
-	if out, ok := input.(TplEntityInterface); ok {
-		v := reflect.Indirect(reflect.ValueOf(out))
-		t := v.Type()
-		if t.Kind() == reflect.Struct {
-			defaulttplEntityMap := &TplEmptyEntity{}
-			targetType := reflect.TypeOf(defaulttplEntityMap)
-			n := t.NumField()
-			for i := 0; i < n; i++ {
-				fv := v.Field(i)
-				ft := fv.Type()
-				if ft == targetType && fv.IsValid() && fv.IsNil() {
-					if fv.CanSet() {
-						fv.Set(reflect.ValueOf((defaulttplEntityMap))) //解决结构体无名称方式引用 *tplEntityMap ,实例化时，并没有实力该字段，导致地址为空,解决测试用例data34 填充值问题
-					} else {
-						// todo resolve data32 panic
-					}
-				}
-			}
-		}
-		return out, ok
-	}
-	return
 }
