@@ -8,7 +8,7 @@ import (
 
 func TestGetTplFilesByDir(t *testing.T) {
 	dir := "."
-	suffix := ".sql.tpl"
+	suffix := "sql"
 	fileList, err := GetTplFilesByDir(dir, suffix)
 	if err != nil {
 		panic(err)
@@ -30,6 +30,16 @@ var RepositoryFS embed.FS
 func TestAddByFS(t *testing.T) {
 	pattern := "test/data/**/*.tpl"
 	files, err := Glob(RepositoryFS, pattern)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(files)
+}
+
+func TestGlobDirectory(t *testing.T) {
+	dir := "../"
+	pattern := "**.go"
+	files, err := GlobDirectory(dir, pattern)
 	if err != nil {
 		panic(err)
 	}

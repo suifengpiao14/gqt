@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -444,20 +445,8 @@ func GetTplFilesByFS(fsys fs.FS, dir string, namespaceSuffix string) (allFileLis
 
 // GetTplFilesByDir get current and reverse dir tpl file
 func GetTplFilesByDir(dir string, namespaceSuffix string) (allFileList []string, err error) {
-	dir = strings.TrimRight(dir, "/")
-	pattern := fmt.Sprintf("%s/*%s%s", dir, namespaceSuffix, TPlSuffix)
-	directFileList, err := filepath.Glob(pattern)
-	if err != nil {
-		return nil, err
-	}
-	allFileList = append(allFileList, directFileList...)
-	pattern = fmt.Sprintf("%s/**/*%s%s", dir, namespaceSuffix, TPlSuffix)
-	subDirFileList, err := filepath.Glob(pattern)
-	if err != nil {
-		return nil, err
-	}
-	allFileList = append(allFileList, subDirFileList...)
-	return
+	pattern := fmt.Sprintf("**%s%s", namespaceSuffix, TPlSuffix)
+	return GlobDirectory(dir, pattern)
 }
 
 func FileName2Namespace(filename string, root string) (namespace string) {
@@ -493,9 +482,10 @@ func Glob(fsys fs.FS, pattern string) ([]string, error) {
 		return fs.Glob(fsys, pattern)
 	}
 	var matches []string
-	regStr := strings.ReplaceAll(pattern, "**", ".*")
+	regStr := strings.ReplaceAll(pattern, ".", "\\.")
+	regStr = strings.ReplaceAll(regStr, "**", ".*")
 	reg := regexp.MustCompile(regStr)
-	fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
 			if reg.MatchString(path) {
 				matches = append(matches, path)
@@ -503,7 +493,29 @@ func Glob(fsys fs.FS, pattern string) ([]string, error) {
 		}
 		return nil
 	})
-	return matches, nil
+	return matches, err
+}
+
+func GlobDirectory(dir string, pattern string) ([]string, error) {
+	dir = strings.TrimRight(dir, "/")
+	if !strings.Contains(pattern, "**") {
+		pattern = fmt.Sprintf("%s/*%s", dir, pattern)
+		// passthru to core package if no double-star
+		return filepath.Glob(pattern)
+	}
+	var matches []string
+	regStr := strings.ReplaceAll(pattern, ".", "\\.")
+	regStr = strings.ReplaceAll(regStr, "**", ".*")
+	reg := regexp.MustCompile(regStr)
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			if reg.MatchString(path) {
+				matches = append(matches, path)
+			}
+		}
+		return nil
+	})
+	return matches, err
 }
 
 //Interface2tplEntity convert interface to TplEntityInterface 核心思路：使得 input 和 out 指向同一个内存地址
