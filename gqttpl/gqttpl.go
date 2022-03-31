@@ -174,7 +174,6 @@ func (d *TPLDefine) Fullname() (fullname string) {
 func (d *TPLDefine) FullnameCamel() (fullnameCamel string) {
 	fullname := fmt.Sprintf("%s_%s", strings.ReplaceAll(d.Namespace, ".", "_"), d.Name)
 	fullnameCamel = ToCamel(fullname)
-
 	return
 }
 
@@ -316,6 +315,21 @@ func (dl TPLDefineList) IsDefineNameCamel(variableName string) bool {
 		}
 	}
 	return false
+}
+
+// 去重，保留第一个出现的值，维持原有顺序
+func (dl TPLDefineList) UniqueItems() (uniq TPLDefineList) {
+	vmap := make(map[string]*TPLDefine)
+	uniq = TPLDefineList{}
+	for _, tplDefine := range dl {
+		if _, ok := vmap[tplDefine.Name]; ok {
+			continue
+		} else {
+			vmap[tplDefine.Name] = tplDefine
+			uniq = append(uniq, tplDefine)
+		}
+	}
+	return
 }
 
 func SplitFullname(fullname string) (namespace string, name string) {
