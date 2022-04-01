@@ -51,57 +51,11 @@ func TestSubDefineWhere(t *testing.T) {
 		IDS:            []int{1, 2, 3},
 		TplEmptyEntity: gqttpl.TplEmptyEntity{},
 	}
-	sql, err := repo.GetSQLByTplEntity(entity)
+	sql, err := repo.GetSQL(entity)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(sql)
-}
-
-func TestStruct(t *testing.T) {
-
-	for _, dir := range []string{"pkg1", "pkg2"} {
-		err := repo.AddByDir(filepath.Join(testDir, dir), TemplatefuncMap)
-		if err != nil {
-			panic(err)
-		}
-	}
-	type structData struct {
-		APIID int
-		Ids   string
-		*gqttpl.TplEmptyEntity
-	}
-
-	data := &structData{
-		APIID: 1,
-		Ids:   "1,2,3,4,5,6",
-	}
-	sql, err := repo.GetSQL("parameter.getAllByAPIID", data)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(sql)
-
-}
-
-func TestMap(t *testing.T) {
-	for _, dir := range []string{"pkg1", "pkg2"} {
-		err := repo.AddByDir(filepath.Join(testDir, dir), TemplatefuncMap)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	data := make(map[string]interface{})
-	data["APIID"] = 1
-	data["Ids"] = "1,2,4"
-	tplEntity := gqttpl.TplEmptyEntity(data)
-	sql, err := repo.GetSQL("parameter.getAllByAPIID", &tplEntity)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(sql)
-
 }
 
 func TestSQLNamed(t *testing.T) {
@@ -167,28 +121,6 @@ func TestPtrConvert(t *testing.T) {
 	fmt.Printf("a:%#v--v:%#v----m:", *a, *volumePtr)
 }
 
-func TestSQLInMap(t *testing.T) {
-	tpl := `
-	{{define "testIn"}}
-	 select * from aa where id {{in . .IDS}};
-	 {{end}}
-	`
-	repo = NewRepositorySQL()
-	err := repo.AddByNamespace("test", tpl, TemplatefuncMap)
-	if err != nil {
-		panic(err)
-	}
-	data := map[string]interface{}{
-		"IDS": []int{1, 3, 4},
-	}
-	tplEntity := gqttpl.TplEmptyEntity(data)
-	sqlrow, err := repo.GetSQL("test.testIn", &tplEntity)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(sqlrow)
-}
-
 type tplEntityTest struct {
 	Hello string
 	IDS   []int
@@ -211,7 +143,7 @@ func TestSQLIntplEntity(t *testing.T) {
 		IDS:   []int{1, 3, 4},
 		//tplEntityMap: make(tplEntityMap),
 	}
-	sqlrow, err := repo.GetSQL("test.testIn", data)
+	sqlrow, err := repo.GetSQL(data)
 	if err != nil {
 		panic(err)
 	}

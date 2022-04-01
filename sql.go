@@ -152,27 +152,22 @@ func (r *RepositorySQL) GetDDLSQL() (ddlSQLRowList []*SQLRow, err error) {
 }
 
 // 将模板名称，模板中的变量，封装到结构体中，使用结构体访问，避免拼写错误以及分散的硬编码，可以配合 gqttool 自动生成响应的结构体
-func (r *RepositorySQL) GetSQLByTplEntity(t gqttpl.TplEntityInterface) (sqlRow *SQLRow, err error) {
-	return r.GetSQL(t.TplName(), t)
+func (r *RepositorySQL) GetSQL(t gqttpl.TplEntityInterface) (*SQLRow, error) {
+	defineResult, err := gqttpl.ExecuteTemplate(r.templates, t.TplName(), t)
+	if err != nil {
+		return nil, err
+	}
+	sqlRow, err := r.DefineResult2SQLRow(*defineResult)
+	return sqlRow, err
 }
 
 // GetSQLByTplEntityRef 支持只返回error 函数签名
-func (r *RepositorySQL) GetSQLRawByTplEntityRef(t gqttpl.TplEntityInterface, sqlStr *string) (err error) {
-	sqlRow, err := r.GetSQL(t.TplName(), t)
+func (r *RepositorySQL) GetSQLRef(t gqttpl.TplEntityInterface, sqlStr *string) (err error) {
+	sqlRow, err := r.GetSQL(t)
 	if err != nil {
 		return err
 	}
 	*sqlStr = sqlRow.SQL
-	return
-}
-
-//无sql注入的安全方式
-func (r *RepositorySQL) GetSQL(fullname string, data gqttpl.TplEntityInterface) (sqlRow *SQLRow, err error) {
-	defineResult, err := gqttpl.ExecuteTemplate(r.templates, fullname, data)
-	if err != nil {
-		return nil, err
-	}
-	sqlRow, err = r.DefineResult2SQLRow(*defineResult)
 	return
 }
 

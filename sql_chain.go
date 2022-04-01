@@ -20,14 +20,14 @@ func NewSQLChain(sqlRepository func() *RepositorySQL) (s *SQLChain) {
 	return
 }
 
-func (s *SQLChain) ParseSQL(tplName string, args gqttpl.TplEntityInterface, result interface{}) *SQLChain {
+func (s *SQLChain) ParseSQL(t gqttpl.TplEntityInterface, result interface{}) *SQLChain {
 	if s.sqlRepository == nil {
 		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
 	}
 	if s.err != nil {
 		return s
 	}
-	sqlRow, err := s.sqlRepository().GetSQL(tplName, args)
+	sqlRow, err := s.sqlRepository().GetSQL(t)
 	if err != nil {
 		s.err = err
 		return s
@@ -43,7 +43,7 @@ func (s *SQLChain) ParseTpEntity(entity gqttpl.TplEntityInterface, result interf
 	if s.err != nil {
 		return s
 	}
-	sqlRow, err := s.sqlRepository().GetSQLByTplEntity(entity)
+	sqlRow, err := s.sqlRepository().GetSQL(entity)
 	if err != nil {
 		s.err = err
 		return s
