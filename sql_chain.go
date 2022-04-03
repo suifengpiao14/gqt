@@ -36,22 +36,6 @@ func (s *SQLChain) ParseSQL(t gqttpl.TplEntityInterface, result interface{}) *SQ
 	return s
 }
 
-func (s *SQLChain) ParseTpEntity(entity gqttpl.TplEntityInterface, result interface{}) *SQLChain {
-	if s.sqlRepository == nil {
-		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
-	}
-	if s.err != nil {
-		return s
-	}
-	sqlRow, err := s.sqlRepository().GetSQL(entity)
-	if err != nil {
-		s.err = err
-		return s
-	}
-	s.sqlRows = append(s.sqlRows, sqlRow)
-	return s
-}
-
 //GetAllSQL get all sql from SQLChain
 func (s *SQLChain) SQLRows() (sqlRowList []*SQLRow, err error) {
 	return s.sqlRows, s.err
