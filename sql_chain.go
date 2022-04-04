@@ -32,6 +32,7 @@ func (s *SQLChain) ParseSQL(t gqttpl.TplEntityInterface, result interface{}) *SQ
 		s.err = err
 		return s
 	}
+	sqlRow.Result = result
 	s.sqlRows = append(s.sqlRows, sqlRow)
 	return s
 }

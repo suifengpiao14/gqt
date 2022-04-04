@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"text/template"
@@ -369,6 +370,10 @@ func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespa
 		if err != nil {
 			return nil, err
 		}
+
+		if tplDefine.Name == namespace && TrimSpaces(tplDefine.Output) == "" {
+			continue // skip default empty template define
+		}
 		tplDefineList = append(tplDefineList, tplDefine)
 	}
 	return
@@ -405,8 +410,11 @@ func ExecuteTemplate(templateMap map[string]*template.Template, fullname string,
 		err = errors.Errorf("ExecuteTemplate: no template %q associated with template %q", name, t.Name())
 		return nil, err
 	}
-	if tplEntity == nil { // 确保数据容器对象不为空
-		tplEntity = &TplEmptyEntity{}
+	tplEntityR := reflect.ValueOf(tplEntity)
+	if tplEntityR.IsNil() {
+		err := errors.Errorf("%#v must not nil", tplEntity)
+		return nil, err
+
 	}
 	tplEntity.SetValue(TEMPLATE_MAP_KEY, templateMap) // 将模板传入，方便在模板中执行模板
 	tplDefine, err = execTpl(tpl, namespace, tplEntity)
@@ -440,25 +448,13 @@ func ExecuteTemplateTry(templateMap map[string]*template.Template, fullname stri
 }
 
 func GetTplFilesByFS(fsys fs.FS, dir string, namespaceSuffix string) (allFileList []string, err error) {
-	dir = strings.TrimRight(dir, "/")
-	pattern := fmt.Sprintf("%s/*%s%s", dir, namespaceSuffix, TPlSuffix)
-	directFileList, err := fs.Glob(fsys, pattern)
-	if err != nil {
-		return nil, err
-	}
-	allFileList = append(allFileList, directFileList...)
-	pattern = fmt.Sprintf("%s/**/*%s%s", dir, namespaceSuffix, TPlSuffix)
-	subDirFileList, err := Glob(fsys, pattern)
-	if err != nil {
-		return nil, err
-	}
-	allFileList = append(allFileList, subDirFileList...)
-	return
+	pattern := fmt.Sprintf("%s/**%s%s", dir, namespaceSuffix, TPlSuffix)
+	return Glob(fsys, pattern)
 }
 
 // GetTplFilesByDir get current and reverse dir tpl file
 func GetTplFilesByDir(dir string, namespaceSuffix string) (allFileList []string, err error) {
-	pattern := fmt.Sprintf("**%s%s", namespaceSuffix, TPlSuffix)
+	pattern := fmt.Sprintf("%s/**%s%s", dir, namespaceSuffix, TPlSuffix)
 	return GlobDirectory(dir, pattern)
 }
 

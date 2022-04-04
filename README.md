@@ -140,3 +140,8 @@ mysql.Get("queryName")
 Copyright © 2016 Davide Muzzarelli. All right reserved.
 
 Use of this source code is governed by a BSD-style license that can be found in the [LICENSE](LICENSE) file.
+
+## gqttool 
+gqttool sql -metaDir example -sqlDir example/gen -force true
+gqttool sqlEntity -sqlDir example -entity example/sql.entity.gen.go -force true
+

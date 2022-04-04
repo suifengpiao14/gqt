@@ -3,6 +3,7 @@ package gqttpl
 import (
 	"embed"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -44,4 +45,22 @@ func TestGlobDirectory(t *testing.T) {
 		panic(err)
 	}
 	fmt.Println(files)
+}
+
+type BatchArgs struct {
+	InsertEntity *GenExampleSQLInsertEntity
+}
+
+func TestNilTplEntity(t *testing.T) {
+	args := &BatchArgs{}
+	SetTplEntity(args.InsertEntity)
+
+}
+
+func SetTplEntity(t TplEntityInterface) {
+	rv := reflect.ValueOf(t)
+	println(rv.IsNil())
+	err := fmt.Sprintf("%#v must be not nil", t)
+	fmt.Println(err)
+	//t.SetValue("a", "ok")
 }
