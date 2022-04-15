@@ -454,7 +454,7 @@ func GetTplFilesByFS(fsys fs.FS, dir string, namespaceSuffix string) (allFileLis
 
 // GetTplFilesByDir get current and reverse dir tpl file
 func GetTplFilesByDir(dir string, namespaceSuffix string) (allFileList []string, err error) {
-	pattern := fmt.Sprintf("%s/**%s%s", dir, namespaceSuffix, TPlSuffix)
+	pattern := fmt.Sprintf("%s/**%s%s", strings.TrimRight(dir, "/"), namespaceSuffix, TPlSuffix)
 	return GlobDirectory(dir, pattern)
 }
 
@@ -517,7 +517,12 @@ func GlobDirectory(dir string, pattern string) ([]string, error) {
 	regStr = strings.ReplaceAll(regStr, "**", ".*")
 	reg := regexp.MustCompile(regStr)
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if info == nil {
+			err := errors.Errorf("dir:%s filepath.Walk info is nil", dir)
+			return err
+		}
 		if !info.IsDir() {
+			path = strings.ReplaceAll(path, "\\", "/")
 			if reg.MatchString(path) {
 				matches = append(matches, path)
 			}

@@ -58,9 +58,19 @@ func TestNilTplEntity(t *testing.T) {
 }
 
 func SetTplEntity(t TplEntityInterface) {
-	rv := reflect.ValueOf(t)
-	println(rv.IsNil())
-	err := fmt.Sprintf("%#v must be not nil", t)
-	fmt.Println(err)
+	if t == nil {
+		fmt.Println(111)
+		return
+	}
+	rt := reflect.TypeOf(t)
+	if rt.Kind() == reflect.Ptr {
+		fmt.Println("ptr")
+	}
+	fmt.Println(nil)
+	fmt.Println(t)
+	// rv := reflect.ValueOf(t)
+	// println(rv.IsNil())
+	// err := fmt.Sprintf("%#v must be not nil", t)
+	// fmt.Println(err)
 	//t.SetValue("a", "ok")
 }
