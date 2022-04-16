@@ -151,11 +151,11 @@ func TestSQLIntplEntity(t *testing.T) {
 }
 
 //go:embed  example
-var RepositoryFS embed.FS
+var repositoryFS embed.FS
 
 func TestAddByFS(t *testing.T) {
 	rpo := NewRepositorySQL()
-	err := rpo.AddByFS(RepositoryFS, ".", TemplatefuncMap)
+	err := rpo.AddByFS(repositoryFS, ".", TemplatefuncMap)
 	if err != nil {
 		panic(err)
 	}
