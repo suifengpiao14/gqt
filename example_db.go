@@ -50,8 +50,8 @@ func InitDB() *gorm.DB {
 	return db
 }
 
-//CreateTable 初始化数据表
-func CreateTable(getrepositorySQL func() *RepositorySQL) {
+//DBCreateTable 初始化数据表
+func DBCreateTable(getrepositorySQL func() *RepositorySQL) {
 	repositorySQL := getrepositorySQL()
 
 	ddlNamespace, err := repositorySQL.GetDDLNamespace()
