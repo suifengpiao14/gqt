@@ -37,3 +37,11 @@ func Flight(sqlStr string, fn func() (interface{}, error)) (err error) {
 	}
 	return
 }
+
+//ConvertStruct 转换结构体
+func ConvertStruct(from interface{}, to interface{}) {
+	err := copier.Copy(to, from)
+	if err != nil {
+		panic(err)
+	}
+}
