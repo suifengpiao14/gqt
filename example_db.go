@@ -10,12 +10,16 @@ import (
 	"github.com/suifengpiao14/gqt/v2/gqttpl"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var db *gorm.DB
 var dbOnce sync.Once
 
 var DB_SOURCE = ""
+var gormConfig = gorm.Config{
+	Logger: logger.Default.LogMode(logger.Info),
+}
 
 type dbConfig struct {
 	DriverName   string `mapstructure:"driverName"`
@@ -40,7 +44,7 @@ func InitDB() *gorm.DB {
 		panic("var DB_SOURCE must be set value")
 	}
 	dbOnce.Do(func() {
-		dbCon, err := gorm.Open(mysql.Open(DB_SOURCE), &gorm.Config{})
+		dbCon, err := gorm.Open(mysql.Open(DB_SOURCE), &gormConfig)
 		if err != nil {
 			panic(err)
 		}
