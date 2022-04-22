@@ -22,10 +22,10 @@ func SnakeCase(name string) string {
 }
 
 //TplOutput 模板中执行模板，获取数据时使用 gqttool 生成的entity 会调用该方法，实现 TplEntityInterface 接口
-func TplOutput(dataVolume TplEntityInterface, tplEntity TplEntityInterface) (output string, err error) {
+func ExecTpl(dataVolume TplEntityInterface, fullname string) (output string, err error) {
 	templateMapI, ok := dataVolume.GetValue(TEMPLATE_MAP_KEY)
 	if !ok {
-		err = errors.Errorf("not found key %s in %#v", TEMPLATE_MAP_KEY, tplEntity)
+		err = errors.Errorf("not found key %s in %#v", TEMPLATE_MAP_KEY, fullname)
 		return
 	}
 	var templateMap map[string]*template.Template
@@ -35,11 +35,11 @@ func TplOutput(dataVolume TplEntityInterface, tplEntity TplEntityInterface) (out
 	} else {
 		templateMap, ok = templateMapI.(map[string]*template.Template)
 		if !ok {
-			err = errors.Errorf(" key %s value want  %#v,got %#v", TEMPLATE_MAP_KEY, templateMap, tplEntity)
+			err = errors.Errorf(" key %s value want  %#v,got %#v", TEMPLATE_MAP_KEY, templateMap, fullname)
 			return
 		}
 	}
-	tplDefine, err := ExecuteTemplate(templateMap, tplEntity.TplName(), dataVolume)
+	tplDefine, err := ExecuteTemplate(templateMap, fullname, dataVolume)
 	if err != nil {
 		return
 	}

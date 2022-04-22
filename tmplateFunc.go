@@ -20,7 +20,7 @@ var TemplatefuncMap = template.FuncMap{
 	"toCamel":       gqttpl.ToCamel,
 	"toLowerCamel":  gqttpl.ToLowerCamel,
 	"snakeCase":     gqttpl.SnakeCase,
-	"tplOutput":     gqttpl.TplOutput,
+	"tplOutput":     TplOutput,
 }
 
 func ZeroTime(tplEntity gqttpl.TplEntityInterface) (string, error) {
@@ -106,4 +106,8 @@ func In(tplEntity gqttpl.TplEntityInterface, data interface{}) (str string, err 
 	str = strings.Join(placeholders, ",")
 	return str, nil
 
+}
+
+func TplOutput(dataVolume gqttpl.TplEntityInterface, tplEntity gqttpl.TplEntityInterface) (output string, err error) {
+	return gqttpl.ExecTpl(dataVolume, tplEntity.TplName())
 }
