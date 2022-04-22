@@ -168,6 +168,11 @@ type TPLDefine struct {
 	Input      TplEntityInterface
 }
 
+func (d *TPLDefine) Convert() error {
+	// todo 将TPLDefine 执行完的结果，转换为指定类型的对象(SQLROW、CURLROW)
+	return nil
+}
+
 func (d *TPLDefine) Fullname() (fullname string) {
 	fullname = fmt.Sprintf("%s.%s", d.Namespace, d.Name)
 	return
