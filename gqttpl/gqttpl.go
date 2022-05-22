@@ -404,6 +404,10 @@ func execTpl(tpl *template.Template, namespace string, tplEntity TplEntityInterf
 
 // ExecuteNamespaceTemplate execute all template under namespace
 func ExecuteTemplate(templateMap map[string]*template.Template, fullname string, tplEntity TplEntityInterface) (tplDefine *TPLDefine, err error) {
+	if tplEntity == nil {
+		err = errors.Errorf("ExecuteTemplate tplEntity must not nil ")
+		return nil, err
+	}
 	namespace, name := SplitFullname(fullname)
 	t, ok := templateMap[namespace]
 	if !ok {
