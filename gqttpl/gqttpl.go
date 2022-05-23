@@ -159,13 +159,11 @@ var LeftDelim = "{{"
 var RightDelim = "}}"
 
 type TPLDefine struct {
-	RightDelim string
-	LeftDelim  string
-	Name       string
-	Namespace  string
-	Output     string
-	typ        string
-	Input      TplEntityInterface
+	Name      string
+	Namespace string
+	Output    string
+	typ       string
+	Input     TplEntityInterface
 }
 
 func (d *TPLDefine) Convert() error {
@@ -186,25 +184,25 @@ func (d *TPLDefine) FullnameCamel() (fullnameCamel string) {
 //Content TPLDefine.Out 含有{{define ...{{end}} Content 在此基础上 去除 define标记
 func (d *TPLDefine) Content() (content string) {
 	content = TrimSpaces(d.Output) // 去除开头结尾的非有效字符
-	index := strings.Index(content, d.RightDelim)
+	index := strings.Index(content, RightDelim)
 	if index < 0 {
-		err := errors.Errorf("not found %sdefine \"xxx\" %s in tpl content %s", d.LeftDelim, d.RightDelim, content)
+		err := errors.Errorf("not found %sdefine \"xxx\" %s in tpl content %s", LeftDelim, RightDelim, content)
 		panic(err)
 	}
 
-	endTag := fmt.Sprintf("%send%s", d.LeftDelim, d.RightDelim)
+	endTag := fmt.Sprintf("%send%s", LeftDelim, RightDelim)
 	endIndex := strings.Index(content, endTag)
 	if endIndex < 0 {
-		err := errors.Errorf("not found %send%s in tpl content %s", d.LeftDelim, d.RightDelim, content)
+		err := errors.Errorf("not found %send%s in tpl content %s", LeftDelim, RightDelim, content)
 		panic(err)
 	}
-	content = content[index+len(d.RightDelim) : len(content)-len(endTag)]
+	content = content[index+len(RightDelim) : len(content)-len(endTag)]
 	content = TrimSpaces(content)
 	return
 }
 
 func (d *TPLDefine) ContentFirstLine(s string) (firstLine string) {
-	re, err := regexp.Compile(fmt.Sprintf("%s.*%s", d.LeftDelim, d.RightDelim))
+	re, err := regexp.Compile(fmt.Sprintf("%s.*%s", LeftDelim, RightDelim))
 	if err != nil {
 		panic(err)
 	}
