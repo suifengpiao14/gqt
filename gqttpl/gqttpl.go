@@ -376,7 +376,7 @@ func ExecuteNamespaceTemplate(templateMap map[string]*template.Template, namespa
 			return nil, err
 		}
 
-		if tplDefine.Name == namespace && TrimSpaces(tplDefine.Output) == "" {
+		if TrimSpaces(tplDefine.Output) == "" {
 			continue // skip default empty template define
 		}
 		tplDefineList = append(tplDefineList, tplDefine)

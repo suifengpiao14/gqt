@@ -21,15 +21,6 @@ var gormConfig = gorm.Config{
 	Logger: logger.Default.LogMode(logger.Info),
 }
 
-type dbConfig struct {
-	DriverName   string `mapstructure:"driverName"`
-	DataSource   string `mapstructure:"dataSource"`
-	LogMode      bool   `mapstructure:"logMode"`
-	Trace        string `mapstructure:"trace"`
-	MaxIdleConns int    `mapstructure:"maxIdleConns"`
-	MaxOpenConns int    `mapstructure:"maxOpenConns"`
-}
-
 // GetDb is a signal DB
 func GetDb() *gorm.DB {
 	if db == nil {
