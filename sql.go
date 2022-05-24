@@ -25,6 +25,8 @@ func NewRepositorySQL() *RepositorySQL {
 }
 
 type SQLRow struct {
+	Name      string
+	Namespace string
 	SQL       string
 	Statment  string
 	Arguments []interface{}

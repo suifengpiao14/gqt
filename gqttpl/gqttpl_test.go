@@ -47,6 +47,33 @@ func TestGlobDirectory(t *testing.T) {
 	fmt.Println(files)
 }
 
+type GenExampleSQLInsertEntity struct {
+	APIID            string
+	Auth             string
+	Body             string
+	ContentType      string
+	ExampleID        string
+	Headers          string
+	Method           string
+	Parameters       string
+	PreRequestScript string
+	Response         string
+	ServiceID        string
+	Summary          string
+	Tag              string
+	TestScript       string
+	Title            string
+	URL              string
+	TplEmptyEntity
+}
+
+func (t *GenExampleSQLInsertEntity) TplName() string {
+	return "gen.example.sql.Insert"
+}
+func (t *GenExampleSQLInsertEntity) TplType() string {
+	return "sql_insert"
+}
+
 type BatchArgs struct {
 	InsertEntity *GenExampleSQLInsertEntity
 }
