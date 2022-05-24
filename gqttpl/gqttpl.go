@@ -21,6 +21,8 @@ var DDLNamespaceSuffix = "ddl"
 var ConfigNamespaceSuffix = "config"
 var MetaNamespaceSuffix = "meta"
 var CURLNamespaceSuffix = "curl"
+var LeftDelim = "{{"
+var RightDelim = "}}"
 
 const TEMPLATE_MAP_KEY = "_templateMap"
 const URI_KEY = "__URI__" // 记录资源地址key(curl 请求地址、db 连接地址等)
@@ -40,6 +42,13 @@ const (
 	WINDOW_EOF                    = "\r\n"
 	HTTP_HEAD_BODY_DELIM          = EOF + EOF
 )
+
+type TPLDefine struct {
+	Name      string
+	Namespace string
+	Output    string
+	Input     interface{}
+}
 
 // TplEntityInterface 模板参数对象，由于sql、curl经常需要在模板中增加数据，所以直接在模板输入实体接口融合TplEntityInterface 接口功能，实体包含隐藏字段类型tplEntityMap，即可实现TplEntityInterface 功能
 type TplEntityInterface interface {
@@ -149,189 +158,6 @@ func AddTemplateByStr(namespace string, content string, funcMap template.FuncMap
 	if err != nil {
 		err = errors.WithStack(err)
 		return nil, err
-	}
-	return
-}
-
-type TPLDefineList []*TPLDefine
-
-var LeftDelim = "{{"
-var RightDelim = "}}"
-
-type TPLDefine struct {
-	Name      string
-	Namespace string
-	Output    string
-	typ       string
-	Input     TplEntityInterface
-}
-
-func (d *TPLDefine) Convert() error {
-	// todo 将TPLDefine 执行完的结果，转换为指定类型的对象(SQLROW、CURLROW)
-	return nil
-}
-
-func (d *TPLDefine) Fullname() (fullname string) {
-	fullname = fmt.Sprintf("%s.%s", d.Namespace, d.Name)
-	return
-}
-func (d *TPLDefine) FullnameCamel() (fullnameCamel string) {
-	fullname := fmt.Sprintf("%s_%s", strings.ReplaceAll(d.Namespace, ".", "_"), d.Name)
-	fullnameCamel = ToCamel(fullname)
-	return
-}
-
-//Content TPLDefine.Out 含有{{define ...{{end}} Content 在此基础上 去除 define标记
-func (d *TPLDefine) Content() (content string) {
-	content = TrimSpaces(d.Output) // 去除开头结尾的非有效字符
-	index := strings.Index(content, RightDelim)
-	if index < 0 {
-		err := errors.Errorf("not found %sdefine \"xxx\" %s in tpl content %s", LeftDelim, RightDelim, content)
-		panic(err)
-	}
-
-	endTag := fmt.Sprintf("%send%s", LeftDelim, RightDelim)
-	endIndex := strings.Index(content, endTag)
-	if endIndex < 0 {
-		err := errors.Errorf("not found %send%s in tpl content %s", LeftDelim, RightDelim, content)
-		panic(err)
-	}
-	content = content[index+len(RightDelim) : len(content)-len(endTag)]
-	content = TrimSpaces(content)
-	return
-}
-
-func (d *TPLDefine) ContentFirstLine(s string) (firstLine string) {
-	re, err := regexp.Compile(fmt.Sprintf("%s.*%s", LeftDelim, RightDelim))
-	if err != nil {
-		panic(err)
-	}
-	for {
-		firstLineIndex := strings.Index(s, EOF)
-		if firstLineIndex < 0 {
-			firstLine = s
-			break
-		}
-		firstLine = s[:firstLineIndex]
-		firstLine = re.ReplaceAllString(firstLine, "") // 删除template 模板变量，防止第一行为模板变量行，如果为模板变量则取下一行
-		firstLine = TrimSpaces(firstLine)
-		if firstLine != "" {
-			break
-		}
-		s = s[firstLineIndex+len(EOF):] // 更新s 再次获取
-	}
-	return
-}
-
-//Type 判断 tpl define 属于那种类型
-func (d *TPLDefine) Type() (typ string) {
-	if d.typ != "" {
-		return d.typ
-	}
-	typ = TPL_DEFINE_TYPE_TEXT
-	content := d.Content()
-	firstLine := d.ContentFirstLine(content)
-	if firstLine == "" {
-		d.typ = typ
-		return
-	}
-	curlLen := len(CHARACTERISTIC_CURL)
-	fl := len(firstLine)
-	if fl >= curlLen {
-		last := strings.ToUpper(firstLine[fl-curlLen:])
-		if last == CHARACTERISTIC_CURL {
-			typ = TPL_DEFINE_TYPE_CURL_REQUEST
-			d.typ = typ
-			return
-		}
-
-		first := strings.ToUpper(firstLine[:curlLen])
-		if first == CHARACTERISTIC_CURL {
-			typ = TPL_DEFINE_TYPE_CURL_RESPONSE
-			d.typ = typ
-			return
-		}
-	}
-
-	sqlSelectLen := len(CHARACTERISTIC_SQL_SELECT)
-	if fl >= sqlSelectLen {
-		first := strings.ToUpper(firstLine[:sqlSelectLen])
-		if first == CHARACTERISTIC_SQL_SELECT {
-			typ = TPL_DEFINE_TYPE_SQL_SELECT
-			d.typ = typ
-			return
-		}
-	}
-
-	sqlUpdateLen := len(CHARACTERISTIC_SQL_UPDATE)
-	if fl > sqlUpdateLen {
-		first := strings.ToUpper(firstLine[:sqlUpdateLen])
-		if first == CHARACTERISTIC_SQL_UPDATE {
-			typ = TPL_DEFINE_TYPE_SQL_UPDATE
-			d.typ = typ
-			return
-		}
-	}
-
-	sqlInsertLen := len(CHARACTERISTIC_SQL_INSERT)
-	if fl > sqlInsertLen {
-		first := strings.ToUpper(firstLine[:sqlInsertLen])
-		if first == CHARACTERISTIC_SQL_INSERT {
-			typ = TPL_DEFINE_TYPE_SQL_INSERT
-			d.typ = typ
-			return
-		}
-	}
-
-	d.typ = typ
-	return
-}
-
-//判断是否为CURL 类型
-func (d *TPLDefine) ISCURL() (yes bool) {
-	typ := d.Type()
-	yes = (typ == TPL_DEFINE_TYPE_CURL_REQUEST) || (typ == TPL_DEFINE_TYPE_CURL_RESPONSE)
-	return
-}
-
-//判断是否为SQL 类型
-func (d *TPLDefine) ISSQL() (yes bool) {
-	typ := d.Type()
-	yes = (typ == TPL_DEFINE_TYPE_SQL_SELECT) || (typ == TPL_DEFINE_TYPE_SQL_UPDATE) || (typ == TPL_DEFINE_TYPE_SQL_INSERT)
-	return
-}
-
-//Tag TPLDefine 标签 namespace 的后缀（curl、sql、ddl、meta）
-func (d *TPLDefine) Tag() (tag string) {
-	lastIndex := strings.Index(d.Namespace, ".")
-	tag = d.Namespace
-	if lastIndex > -1 {
-		tag = d.Namespace[lastIndex+1:]
-	}
-	return
-}
-
-// 判断一个(变量)名词是否和define 名称相同
-func (dl TPLDefineList) IsDefineNameCamel(variableName string) bool {
-	for _, TPLDefine := range dl {
-		if ToCamel(TPLDefine.Name) == variableName {
-			return true
-		}
-	}
-	return false
-}
-
-// 去重，保留第一个出现的值，维持原有顺序
-func (dl TPLDefineList) UniqueItems() (uniq TPLDefineList) {
-	vmap := make(map[string]*TPLDefine)
-	uniq = TPLDefineList{}
-	for _, tplDefine := range dl {
-		if _, ok := vmap[tplDefine.Name]; ok {
-			continue
-		} else {
-			vmap[tplDefine.Name] = tplDefine
-			uniq = append(uniq, tplDefine)
-		}
 	}
 	return
 }
