@@ -28,19 +28,9 @@ const TEMPLATE_MAP_KEY = "_templateMap"
 const URI_KEY = "__URI__" // 记录资源地址key(curl 请求地址、db 连接地址等)
 
 const (
-	TPL_DEFINE_TYPE_CURL_REQUEST  = "curl_request"
-	TPL_DEFINE_TYPE_CURL_RESPONSE = "curl_response"
-	TPL_DEFINE_TYPE_SQL_SELECT    = "sql_select"
-	TPL_DEFINE_TYPE_SQL_UPDATE    = "sql_update"
-	TPL_DEFINE_TYPE_SQL_INSERT    = "sql_insert"
-	TPL_DEFINE_TYPE_TEXT          = "text"
-	CHARACTERISTIC_CURL           = "HTTP/1.1"
-	CHARACTERISTIC_SQL_SELECT     = "SELECT"
-	CHARACTERISTIC_SQL_UPDATE     = "UPDATE"
-	CHARACTERISTIC_SQL_INSERT     = "INSERT"
-	EOF                           = "\n"
-	WINDOW_EOF                    = "\r\n"
-	HTTP_HEAD_BODY_DELIM          = EOF + EOF
+	EOF                  = "\n"
+	WINDOW_EOF           = "\r\n"
+	HTTP_HEAD_BODY_DELIM = EOF + EOF
 )
 
 type TPLDefine struct {
