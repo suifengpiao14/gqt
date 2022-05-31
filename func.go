@@ -26,12 +26,12 @@ func Model2TplEntity(from interface{}, to gqttpl.TplEntityInterface) {
 
 var g = singleflight.Group{}
 
-func Flight(sqlStr string, fn func() (interface{}, error)) (err error) {
+func Flight(sqlStr string, output interface{}, fn func() (interface{}, error)) (err error) {
 	if sqlStr == "" {
 		err = errors.New("sql must not be empty")
 		return
 	}
-	_, err, _ = g.Do(GetMD5LOWER(sqlStr), fn)
+	output, err, _ = g.Do(GetMD5LOWER(sqlStr), fn)
 	if err != nil {
 		err = errors.WithStack(err)
 	}

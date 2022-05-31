@@ -72,7 +72,7 @@ func DBExec(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity gqtt
 	var sql string
 	err = errorformatter.NewErrorChain().
 		SetError(sqlRepository().GetSQLRef(entity, &sql)).
-		SetError(Flight(sql, func() (interface{}, error) {
+		SetError(Flight(sql, nil, func() (interface{}, error) {
 			err = db().Exec(sql).Error
 			return nil, err
 		})).
@@ -84,9 +84,10 @@ func DBRawScan(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity g
 	var sql string
 	err = errorformatter.NewErrorChain().
 		SetError(sqlRepository().GetSQLRef(entity, &sql)).
-		SetError(Flight(sql, func() (interface{}, error) {
+		SetError(Flight(sql, output, func() (interface{}, error) {
+			// 闭包函数中的output 只是复用外部output 的类型，最终Flight 中使用 匿名函数返回值 第一个作为最终返回值
 			err = db().Raw(sql).Scan(output).Error
-			return nil, err
+			return output, err
 		})).
 		Error()
 	return
@@ -95,11 +96,11 @@ func DBCount(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity gqt
 	var sql string
 	err = errorformatter.NewErrorChain().
 		SetError(sqlRepository().GetSQLRef(entity, &sql)).
-		SetError(Flight(sql, func() (interface{}, error) {
+		SetError(Flight(sql, count, func() (interface{}, error) {
 			var count64 int64
 			err = db().Raw(sql).Count(&count64).Error
 			*count = int(count64)
-			return nil, err
+			return count, err
 		})).
 		Error()
 	return
@@ -174,12 +175,12 @@ func DBTryFind(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity g
 	var sql string
 	err = errorformatter.NewErrorChain().
 		SetError(sqlRepository().GetSQLRef(entity, &sql)).
-		SetError(Flight(sql, func() (interface{}, error) {
+		SetError(Flight(sql, output, func() (interface{}, error) {
 			err = db().Raw(sql).Scan(output).Error
 			if err == gorm.ErrRecordNotFound {
 				err = nil
 			}
-			return nil, err
+			return output, err
 		})).
 		Error()
 	return
