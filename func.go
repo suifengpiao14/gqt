@@ -3,6 +3,7 @@ package gqt
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"reflect"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
@@ -31,9 +32,14 @@ func Flight(sqlStr string, output interface{}, fn func() (interface{}, error)) (
 		err = errors.New("sql must not be empty")
 		return
 	}
-	output, err, _ = g.Do(GetMD5LOWER(sqlStr), fn)
+	value, err, _ := g.Do(GetMD5LOWER(sqlStr), fn)
 	if err != nil {
 		err = errors.WithStack(err)
+	}
+	rv := reflect.Indirect(reflect.ValueOf(output))
+	if rv.CanSet() {
+		valueRv := reflect.Indirect(reflect.ValueOf(value))
+		rv.Set(valueRv)
 	}
 	return
 }
