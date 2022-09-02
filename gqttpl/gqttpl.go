@@ -336,7 +336,8 @@ func GlobDirectory(dir string, pattern string) ([]string, error) {
 		return filepath.Glob(pattern)
 	}
 	var matches []string
-	regStr := strings.ReplaceAll(pattern, ".", "\\.")
+	regStr := strings.ReplaceAll(pattern, "\\", "/")
+	regStr = strings.ReplaceAll(regStr, ".", "\\.")
 	regStr = strings.ReplaceAll(regStr, "**", ".*")
 	reg := regexp.MustCompile(regStr)
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
