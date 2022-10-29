@@ -25,12 +25,14 @@ func NewRepositorySQL() *RepositorySQL {
 }
 
 type SQLRow struct {
-	Name      string
-	Namespace string
-	SQL       string
-	Statment  string
-	Arguments []interface{}
-	Result    interface{}
+	Name        string
+	Namespace   string
+	SQL         string
+	Statment    string
+	Arguments   []interface{}
+	NamedStmt   string
+	NamedParams map[string]interface{}
+	Result      interface{}
 }
 
 func (r *RepositorySQL) AddByDir(root string, funcMap template.FuncMap) (err error) {
@@ -87,6 +89,7 @@ func (r *RepositorySQL) DefineResult2SQLRow(defineResult gqttpl.TPLDefine) (sqlR
 	if err != nil {
 		return
 	}
+	sqlRow.NamedStmt, sqlRow.NamedParams = sqlNamed, data //增加命名格式和数据,方便后续可以修改数据,比如多条数据有先后依赖关系(下一条sql的某个关联ID来自上一条sql执行结果的自增ID)
 	sqlRow.Statment, sqlRow.Arguments, err = sqlx.Named(sqlNamed, data)
 	if err != nil {
 		err = errors.WithStack(err)

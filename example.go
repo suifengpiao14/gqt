@@ -6,7 +6,7 @@ import (
 )
 
 // 实际使用时，需要初始化该变量
-var RepositoryFS embed.FS
+var RepositoryFS *embed.FS
 var TemplateDir = "template"
 
 var repository *RepositorySQL
