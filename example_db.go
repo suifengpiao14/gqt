@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/suifengpiao14/errorformatter"
-	"github.com/suifengpiao14/gqt/v2/gqttpl"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -29,7 +28,7 @@ func GetDb() *gorm.DB {
 	return db
 }
 
-//GetDb 获取db实例
+// GetDb 获取db实例
 func InitDB() *gorm.DB {
 	if DB_SOURCE == "" {
 		panic("var DB_SOURCE must be set value")
@@ -45,7 +44,7 @@ func InitDB() *gorm.DB {
 	return db
 }
 
-//DBCreateTable 初始化数据表
+// DBCreateTable 初始化数据表
 func DBCreateTable(getrepositorySQL func() *RepositorySQL) {
 	repositorySQL := getrepositorySQL()
 
@@ -68,7 +67,7 @@ func DBCreateTable(getrepositorySQL func() *RepositorySQL) {
 	}
 }
 
-func DBExec(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity gqttpl.TplEntityInterface) (err error) {
+func DBExec(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity TplEntityInterface) (err error) {
 	var sql string
 	err = errorformatter.NewErrorChain().
 		SetError(sqlRepository().GetSQLRef(entity, &sql)).
@@ -80,7 +79,7 @@ func DBExec(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity gqtt
 	return
 }
 
-func DBRawScan(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity gqttpl.TplEntityInterface, output interface{}) (err error) {
+func DBRawScan(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity TplEntityInterface, output interface{}) (err error) {
 	var sql string
 	err = errorformatter.NewErrorChain().
 		SetError(sqlRepository().GetSQLRef(entity, &sql)).
@@ -92,7 +91,7 @@ func DBRawScan(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity g
 		Error()
 	return
 }
-func DBCount(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity gqttpl.TplEntityInterface, count *int) (err error) {
+func DBCount(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity TplEntityInterface, count *int) (err error) {
 	var sql string
 	err = errorformatter.NewErrorChain().
 		SetError(sqlRepository().GetSQLRef(entity, &sql)).
@@ -171,7 +170,7 @@ func WrapDBExecSQL(db func() *gorm.DB) func(sqlRowList []*SQLRow) (err error) {
 	}
 }
 
-func DBTryFind(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity gqttpl.TplEntityInterface, output interface{}) (err error) {
+func DBTryFind(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity TplEntityInterface, output interface{}) (err error) {
 	var sql string
 	err = errorformatter.NewErrorChain().
 		SetError(sqlRepository().GetSQLRef(entity, &sql)).
@@ -189,12 +188,12 @@ func DBTryFind(sqlRepository func() *RepositorySQL, db func() *gorm.DB, entity g
 type DBBatchSaveArgs struct {
 	ModelList       interface{}
 	PrimaryKeyCamel string
-	UpdateEntity    gqttpl.TplEntityInterface // 无需填充
-	InsertEntity    gqttpl.TplEntityInterface // 无需填充
-	DelEntity       gqttpl.TplEntityInterface // 无需填充
+	UpdateEntity    TplEntityInterface // 无需填充
+	InsertEntity    TplEntityInterface // 无需填充
+	DelEntity       TplEntityInterface // 无需填充
 }
 
-func DBBatchSave(sqlRepository func() *RepositorySQL, db func() *gorm.DB, getByIDsEntity gqttpl.TplEntityInterface, args *DBBatchSaveArgs) (err error) {
+func DBBatchSave(sqlRepository func() *RepositorySQL, db func() *gorm.DB, getByIDsEntity TplEntityInterface, args *DBBatchSaveArgs) (err error) {
 
 	sqlChain := NewSQLChain(sqlRepository)
 	var dbModelList []interface{}
@@ -225,9 +224,9 @@ type BatchInsertUpdateDelSQLArgs struct {
 	ModelList       interface{}
 	DBModelList     interface{}
 	PrimaryKeyCamel string
-	UpdateEntity    gqttpl.TplEntityInterface
-	InsertEntity    gqttpl.TplEntityInterface
-	DelEntity       gqttpl.TplEntityInterface
+	UpdateEntity    TplEntityInterface
+	InsertEntity    TplEntityInterface
+	DelEntity       TplEntityInterface
 	SqlChain        *SQLChain
 }
 

@@ -2,7 +2,6 @@ package gqt
 
 import (
 	"github.com/pkg/errors"
-	"github.com/suifengpiao14/gqt/v2/gqttpl"
 )
 
 type SQLChain struct {
@@ -20,7 +19,7 @@ func NewSQLChain(sqlRepository func() *RepositorySQL) (s *SQLChain) {
 	return
 }
 
-func (s *SQLChain) ParseSQL(t gqttpl.TplEntityInterface, result interface{}) *SQLChain {
+func (s *SQLChain) ParseSQL(t TplEntityInterface, result interface{}) *SQLChain {
 	if s.sqlRepository == nil {
 		s.err = errors.Errorf("want SQLChain.sqlRepository ,have %#v", s)
 	}
@@ -37,12 +36,12 @@ func (s *SQLChain) ParseSQL(t gqttpl.TplEntityInterface, result interface{}) *SQ
 	return s
 }
 
-//GetAllSQL get all sql from SQLChain
+// GetAllSQL get all sql from SQLChain
 func (s *SQLChain) SQLRows() (sqlRowList []*SQLRow, err error) {
 	return s.sqlRows, s.err
 }
 
-//Exec exec sql
+// Exec exec sql
 func (s *SQLChain) Exec(fn func(sqlRowList []*SQLRow) (e error)) (err error) {
 	if s.err != nil {
 		return s.err
@@ -51,7 +50,7 @@ func (s *SQLChain) Exec(fn func(sqlRowList []*SQLRow) (e error)) (err error) {
 	return s.err
 }
 
-//Exec exec sql ,get data
+// Exec exec sql ,get data
 func (s *SQLChain) Scan(fn func(sqlRowList []*SQLRow) (e error)) (err error) {
 	if s.err != nil {
 		return
@@ -60,7 +59,7 @@ func (s *SQLChain) Scan(fn func(sqlRowList []*SQLRow) (e error)) (err error) {
 	return s.err
 }
 
-//AddSQL add one sql to SQLChain
+// AddSQL add one sql to SQLChain
 func (s *SQLChain) AddSQL(namespace string, name string, sql string, result interface{}) {
 	sqlRow := &SQLRow{
 		Name:      name,

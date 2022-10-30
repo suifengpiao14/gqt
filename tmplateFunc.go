@@ -6,8 +6,6 @@ import (
 	"strings"
 	"text/template"
 	"time"
-
-	"github.com/suifengpiao14/gqt/v2/gqttpl"
 )
 
 var TemplatefuncMap = template.FuncMap{
@@ -17,13 +15,13 @@ var TemplatefuncMap = template.FuncMap{
 	"contains":      strings.Contains,
 	"newPreComma":   NewPreComma,
 	"in":            In,
-	"toCamel":       gqttpl.ToCamel,
-	"toLowerCamel":  gqttpl.ToLowerCamel,
-	"snakeCase":     gqttpl.SnakeCase,
+	"toCamel":       ToCamel,
+	"toLowerCamel":  ToLowerCamel,
+	"snakeCase":     SnakeCase,
 	"tplOutput":     TplOutput,
 }
 
-func ZeroTime(tplEntity gqttpl.TplEntityInterface) (string, error) {
+func ZeroTime(tplEntity TplEntityInterface) (string, error) {
 	named := "ZeroTime"
 	placeholder := ":" + named
 	value := "0000-00-00 00:00:00"
@@ -31,7 +29,7 @@ func ZeroTime(tplEntity gqttpl.TplEntityInterface) (string, error) {
 	return placeholder, nil
 }
 
-func CurrentTime(tplEntity gqttpl.TplEntityInterface) (string, error) {
+func CurrentTime(tplEntity TplEntityInterface) (string, error) {
 	named := "CurrentTime"
 	placeholder := ":" + named
 	value := time.Now().Format("2006-01-02 15:04:05")
@@ -39,7 +37,7 @@ func CurrentTime(tplEntity gqttpl.TplEntityInterface) (string, error) {
 	return placeholder, nil
 }
 
-func PermanentTime(tplEntity gqttpl.TplEntityInterface) (string, error) {
+func PermanentTime(tplEntity TplEntityInterface) (string, error) {
 	named := "PermanentTime"
 	placeholder := ":" + named
 	value := "3000-12-31 23:59:59"
@@ -61,7 +59,7 @@ func (c *preComma) PreComma() string {
 	return out
 }
 
-func In(tplEntity gqttpl.TplEntityInterface, data interface{}) (str string, err error) {
+func In(tplEntity TplEntityInterface, data interface{}) (str string, err error) {
 	placeholders := make([]string, 0)
 	inIndexKey := "InIndex_"
 	inIndex := 0
@@ -108,6 +106,6 @@ func In(tplEntity gqttpl.TplEntityInterface, data interface{}) (str string, err 
 
 }
 
-func TplOutput(dataVolume gqttpl.TplEntityInterface, tplEntity gqttpl.TplEntityInterface) (output string, err error) {
-	return gqttpl.ExecTpl(dataVolume, tplEntity.TplName())
+func TplOutput(dataVolume TplEntityInterface, tplEntity TplEntityInterface) (output string, err error) {
+	return ExecTpl(dataVolume, tplEntity.TplName())
 }

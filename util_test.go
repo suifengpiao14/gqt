@@ -3,8 +3,6 @@ package gqt
 import (
 	"fmt"
 	"testing"
-
-	"github.com/suifengpiao14/gqt/v2/gqttpl"
 )
 
 type ExampleModel struct {
@@ -25,13 +23,13 @@ type ExampleEntity struct {
 	ExampleID string
 	ServiceID int
 	Request   bool
-	gqttpl.TplEmptyEntity
+	TplEmptyEntity
 }
 
 func (e *ExampleEntity) TplName() string {
 	return "example"
 }
-func (e *ExampleEntity) TplOutput(tplEntity gqttpl.TplEntityInterface) (string, error) {
+func (e *ExampleEntity) TplOutput(tplEntity TplEntityInterface) (string, error) {
 	return "tpl exec output", nil
 }
 
